@@ -204,7 +204,7 @@ pub static AUTHORS: &'static str = "Luca Goslar <luca.goslar@zugriff.eu>";
 #[command(about = "CLI to interact with the zugriff API.", long_about = None)]
 pub struct Args {
   /// Token to manage account
-  #[clap(short, long, env = "ZUGRIFF_CLI_ACCOUNT_TOKEN")]
+  #[clap(short, long = "accountToken", env = "ZUGRIFF_CLI_ACCOUNT_TOKEN")]
   pub account_token: Option<String>,
   #[command(subcommand)]
   pub action: Actions,
