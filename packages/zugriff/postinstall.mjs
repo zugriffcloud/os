@@ -21,7 +21,7 @@ async function doesFileExist(location) {
 let resolver;
 let output = new Promise((resolve) => (resolver = resolve));
 
-let child = spawn('node', './dist/install.mjs', {
+let child = spawn('node', ['./dist/install.mjs'], {
   cwd: process.cwd(),
   stdio: 'pipe',
 });
