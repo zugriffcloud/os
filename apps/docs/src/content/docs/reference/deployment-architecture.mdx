@@ -1,0 +1,59 @@
+---
+title: Deployment Architecture
+---
+
+import { FileTree } from '@astrojs/starlight/components';
+
+:::tip
+Our CLI or Integration will take care of bundling your application.
+:::
+
+<FileTree>
+
+- .zugriff
+  - config.json
+  - functions
+    - index.js
+  - assets
+    - favicon.ico
+    - ...
+
+</FileTree>
+
+Note, that a deployment does not need to include a function handling dynamic content but can consist of static files only. While this goes both ways, beware that when missing a function, there is no way to route traffic hitting `/` to `index.html` for example. The CLI will automatically detect and generate such routing file.
+
+# Configuration
+
+A configuration file must be located at `.zugriff/config.json`. It must list included assets and functions.
+Files not listed in the configuration file will be stripped from the deployment.
+
+```json
+{
+  "version": 1,
+  "functions": [{ "path": "/index.js", "pattern": "*" }],
+  "puppets": {},
+  "redirects": [],
+  "assets": ["/favicon.ico", ...]
+}
+```
+
+Please note that both file and asset paths referenced in the configuration file must be absolute from within their respected roots.
+
+Learn more about Puppets and Redirects [here](/concepts/edge-middleware).
+
+## Functions
+
+zugriff supports multiple dynamic entrypoints in a deployment. We forward requests a dynamic entrypoints according to wildcard patterns
+(expressions) applied to the path of a request.
+
+While catch-all patterns can be placed first, any other available pattern is checked for a match first. Duplicate patterns are simply
+overwritten.
+
+### Patterns
+
+While patterns might look like regular expressions, they are not. A pattern consists of a wildcard characters that are flexible
+in size and type and regular characters that are not.
+For instance, `*` will match any path while `/prefix/*` will match any path prefixed with `/prefix/` and `*hello*` will match
+any path containing `hello`.
+
+Note, the path itself will start and end with `/` when checked for matches. The function, however, will receive the original path.

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "lib": ["ESNext", "DOM.Iterable", "DOM"],
+    "baseUrl": "./",
+    "declarationDir": "./dist",
+    "jsx": "react-jsx",
+    "paths": {
+      "$lib/*": ["./lib/*"]
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "@zugriff/preset-nitro",
+  "version": "1.0.0",
+  "description": "Deploy your Nitro application with zugriff",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zugriffcloud/os.git"
+  },
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.mjs",
+  "main": "./dist/index.cjs",
+  "type": "module",
+  "exports": {
+    "LICENSE": "./LICENSE",
+    "README.md": "./README.md"
+  },
+  "files": [
+    "nitro.config.ts",
+    "entry.ts"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "keywords": [
+    "preset",
+    "nitro",
+    "nuxt",
+    "vue",
+    "solid",
+    "solidstart",
+    "zugriff",
+    "edge",
+    "runtime"
+  ],
+  "author": "Luca Goslar <luca@zugriff.eu>",
+  "license": "MIT",
+  "dependencies": {
+    "nitropack": "^2.9.6"
+  }
+}

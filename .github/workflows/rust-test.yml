@@ -1,0 +1,58 @@
+name: 'Rust: Test'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/rust-test.yml
+      - crates/**
+      - Cargo.lock
+  pull_request:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        crate:
+          - name: zugriff
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.rustup/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+
+      - name: Build
+        run: cargo build -p ${{ matrix.crate.name }} --verbose
+
+      - name: 'Build: Docs'
+        run: cargo doc -p ${{ matrix.crate.name }} --all-features --no-deps
+
+      - name: Test
+        run: cargo test --verbose
+
+      - name: 'Test: Publish'
+        run: cargo publish -p ${{ matrix.crate.name }} --dry-run

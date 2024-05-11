@@ -1,0 +1,51 @@
+[package]
+name = "zugriff"
+version = "1.0.0"
+edition = "2021"
+license = "EUPL-1.2"
+repository = "https://github.com/zugriffcloud/os"
+authors = ["Luca Goslar <luca@zugriff.eu>"]
+description = "zugriff CLI"
+
+[dependencies]
+actix-web.workspace = true
+tokio = { workspace = true, features = ["full"] }
+awc = { workspace = true, features = ["rustls-0_21"] }
+clap = { workspace = true, features = ["derive", "env"] }
+human-panic.workspace = true
+which.workspace = true
+indicatif.workspace = true
+dialoguer.workspace = true
+strum_macros.workspace = true
+tempfile.workspace = true
+tar.workspace = true
+flate2.workspace = true
+directories.workspace = true
+path-absolutize.workspace = true
+once_cell.workspace = true
+regex.workspace = true
+hotwatch.workspace = true
+zip.workspace = true
+xz2.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+dotenvy.workspace = true
+url.workspace = true
+futures.workspace = true
+bytes.workspace = true
+bincode.workspace = true
+serde-envfile.workspace = true
+env_logger.workspace = true
+log.workspace = true
+garde = { workspace = true, features = ["derive", "url"] }
+size.workspace = true
+colored.workspace = true
+anyhow.workspace = true
+fs_extra.workspace = true
+symlink.workspace = true
+serde_with.workspace = true
+async-signal.workspace = true
+signal-hook.workspace = true
+
+[profile.release]
+lto = true

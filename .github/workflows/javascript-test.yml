@@ -1,0 +1,52 @@
+name: 'JavaScript: Test'
+
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - crates/**
+
+jobs:
+  test:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+      postgres:
+        image: postgres:16
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: root
+          POSTGRES_DB: zugriff
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - run: touch .zugriff_no_postinstall
+      - run: touch packages/zugriff/.zugriff_no_postinstall
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
+      - run: pnpm build

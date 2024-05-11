@@ -1,0 +1,129 @@
+name: 'Rust: Publish'
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - 'Rust: Test'
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    strategy:
+      matrix:
+        crate:
+          - name: zugriff
+
+        platform:
+          - os: ubuntu-latest
+            target: x86_64-unknown-freebsd
+            suffix: freebsd-x86_64.tar.gz
+            command: build
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            suffix: linux-x86_64-musl.tar.gz
+            command: build
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            suffix: linux-aarch64-musl.tar.gz
+            command: build
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            suffix: windows-aarch64.zip
+            command: build
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            suffix: windows-x86_64.zip
+            command: build
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            suffix: darwin-x86_64.tar.gz
+            command: build
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            suffix: darwin-aarch64.tar.gz
+            command: build
+
+    runs-on: ${{ matrix.platform.os }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Version Change
+        uses: actions/github-script@v7
+        id: check_version
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            const fs = require('fs');
+
+            const currentVersion = execSync(`awk -F '"' '/^version/ {print $2}' ./crates/${{ matrix.crate.name }}/Cargo.toml`).toString().trim();
+            const publishedVersion = execSync(`cargo search ${{ matrix.crate.name }} | awk '/${{ matrix.crate.name }}/ {print $3}' | head -1 | tr -d '"'`).toString().trim();
+
+            if (currentVersion != publishedVersion) {
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, `\nversion_changed=true\nversion=${currentVersion}\n`);
+            } else {
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, "\nversion_changed=false\n");
+            }
+
+      - name: Create Tag
+        uses: actions/github-script@v7
+        if: steps.check_version.outputs.version_changed == 'true'
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/crates-${{ matrix.crate.name }}-${{ steps.check_version.outputs.version }}',
+              sha: context.sha
+            }).catch((err) => {
+              if (err.status !== 422) throw err;
+              github.rest.git.updateRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'tags/crates-${{ matrix.crate.name }}-${{ steps.check_version.outputs.version }}',
+                sha: context.sha
+              });
+            })
+
+      - name: 'x86_64-unknown-linux: Install Dependencies'
+        if: steps.check_version.outputs.version_changed == 'true' && contains(matrix.platform.target, 'x86_64-unknown-linux')
+        run: sudo apt-get install musl-tools
+
+      - name: Build Binary
+        uses: houseabsolute/actions-rust-cross@v0
+        if: steps.check_version.outputs.version_changed == 'true'
+        with:
+          command: ${{ matrix.platform.command }}
+          target: ${{ matrix.platform.target }}
+          args: '-p ${{ matrix.crate.name }} --locked --release'
+          strip: true
+
+      - name: 'Archive: Unix-Like'
+        if: steps.check_version.outputs.version_changed == 'true' && !(contains(matrix.platform.os, 'windows'))
+        run: tar -czf ./${{ matrix.crate.name }}-${{ matrix.platform.suffix }} -C ./target/${{ matrix.platform.target }}/release/ ./${{ matrix.crate.name }}
+
+      - name: 'Archive: Windows'
+        if: steps.check_version.outputs.version_changed == 'true' && contains(matrix.platform.os, 'windows')
+        run: Compress-Archive -Path ./target/${{ matrix.platform.target }}/release/${{ matrix.crate.name }}.exe ./${{ matrix.crate.name }}-${{ matrix.platform.suffix }}
+
+      - name: 'Release: Compose'
+        uses: softprops/action-gh-release@v2
+        if: steps.check_version.outputs.version_changed == 'true'
+        with:
+          tag_name: 'crates-${{ matrix.crate.name }}-${{ steps.check_version.outputs.version }}'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: ${{ matrix.crate.name }}-${{ matrix.platform.suffix }}
+
+      - name: 'Crates.io: Publish'
+        if: steps.check_version.outputs.version_changed == 'true' && contains(matrix.platform.suffix, 'linux-x86_64-musl.tar.gz')
+        run: cargo publish -p ${{ matrix.crate.name }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_REGISTRY_TOKEN }}

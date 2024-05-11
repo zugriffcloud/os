@@ -1,0 +1,43 @@
+name: 'zugriff: Deploy'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - crates/**
+
+jobs:
+  deploy:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - run: touch .zugriff_no_postinstall
+      - run: touch packages/zugriff/.zugriff_no_postinstall
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - uses: zugriffcloud/action-deploy@latest
+        with:
+          cwd: ./apps/docs
+          deploymentToken: ${{ secrets.ZUGRIFF_TOKEN_DOCS }}
+          promotions: |
+            production

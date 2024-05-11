@@ -1,0 +1,7 @@
+.DS_Store
+node_modules
+dist
+.zugriff
+vite.config.mts.timestamp*
+target
+.zugriff_no_postinstall

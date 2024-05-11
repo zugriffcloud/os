@@ -1,0 +1,37 @@
+---
+title: Getting Started
+description: A guide to get started with zugriff.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+<Steps>
+
+1. Create an account on [app.zugriff.eu](https://app.zugriff.eu)
+2. Create an organisation and a project
+3. Create a deployment token
+4. Download the zugriff CLI
+
+   ```zsh
+    npm i -g zugriff
+   ```
+
+5. Create a local project
+
+   ```zsh
+    zugriff new my-new-project --typescript
+   ```
+
+6. Enter the directory and install all dependencies
+
+   ```zsh
+    cd my-new-project && npm i
+   ```
+
+7. Deploy and forget!
+
+   ```zsh
+    zugriff deploy --deploymentToken <YOUR_DEPLOYMENT_TOKEN>
+   ```
+
+</Steps>

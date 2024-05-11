@@ -1,0 +1,36 @@
+---
+title: 'Next.js'
+---
+
+After developing your application and configuring your routes to run on the edge runtime, you can use
+[`@cloudflare/next-on-pages`](https://www.npmjs.com/package/@cloudflare/next-on-pages) to build your
+application for both Cloudflare Pages and zugriff.
+
+import { Steps } from '@astrojs/starlight/components';
+
+<Steps>
+
+1. Configure your routes and API endpoints
+
+   ```diff lang="tsx"
+   // page|endpoint.tsx|ts
+   + export const runtime = 'edge';
+
+   export default function Page() {
+     return (...);
+   }
+   ```
+
+2. Build your application with [`@cloudflare/next-on-pages`](https://www.npmjs.com/package/@cloudflare/next-on-pages)
+
+   ```zsh
+    npx @cloudflare/next-on-pages
+   ```
+
+3. Deploy and Forget.
+
+   ```zsh
+    zugriff deploy
+   ```
+
+</Steps>

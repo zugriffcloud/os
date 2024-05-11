@@ -1,0 +1,7 @@
+tab_spaces = 2
+use_field_init_shorthand = true
+wrap_comments = true
+comment_width = 80
+array_width = 10
+max_width = 100
+imports_granularity = "Module"

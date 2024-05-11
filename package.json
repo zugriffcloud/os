@@ -1,0 +1,32 @@
+{
+  "name": "os",
+  "scripts": {
+    "ci:version": "pnpm changeset version",
+    "ci:publish": "pnpm --recursive build && pnpm --recursive publish",
+    "test": "pnpm run --recursive test --passWithNoTests",
+    "build": "pnpm run --recursive build",
+    "coverage": "pnpm run --recursive coverage",
+    "lint": "prettier --check . && eslint .",
+    "format": "prettier --write .",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.1",
+    "@commitlint/cli": "^19.3.0",
+    "@commitlint/config-conventional": "^19.2.2",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/node": "^20.12.11",
+    "@typescript-eslint/eslint-plugin": "^7.8.0",
+    "commitizen": "^4.3.0",
+    "commitlint": "^19.3.0",
+    "eslint": "^9.2.0",
+    "husky": "^9.0.11",
+    "prettier": "^3.2.5",
+    "rollup": "^4.17.2",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11",
+    "vite-plugin-dts": "^3.9.1",
+    "vite-tsconfig-paths": "^4.3.2",
+    "vitest": "^1.6.0"
+  }
+}

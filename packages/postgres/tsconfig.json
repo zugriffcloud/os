@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["DOM", "ESNext", "DOM.Iterable"],
+    "baseUrl": "./",
+    "paths": {
+      "$lib/*": ["./lib/*"]
+    }
+  }
+}

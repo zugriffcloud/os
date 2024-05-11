@@ -1,0 +1,26 @@
+{
+  "name": "docs",
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.6.0",
+    "@astrojs/mdx": "^3.0.0",
+    "@astrojs/starlight": "^0.22.2",
+    "@zugriff/adapter-astro": "workspace:*",
+    "@zugriff/cryptography": "workspace:*",
+    "@zugriff/env": "workspace:*",
+    "@zugriff/mailman": "workspace:*",
+    "@zugriff/postgres": "workspace:*",
+    "@zugriff/redis": "workspace:*",
+    "astro": "^4.8.2",
+    "sharp": "^0.33.3",
+    "typescript": "^5.4.5"
+  }
+}

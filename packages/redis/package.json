@@ -1,0 +1,40 @@
+{
+  "name": "@zugriff/redis",
+  "version": "1.0.0",
+  "description": "Redis at the Edge",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zugriffcloud/os.git"
+  },
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.es.js",
+  "main": "./dist/index.umd.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./README.md": "./README.md",
+    "./LICENSE": "./LICENSE"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "redis",
+    "zugriff",
+    "edge",
+    "runtime"
+  ],
+  "author": "Luca Goslar <luca@zugriff.eu>",
+  "license": "MIT",
+  "dependencies": {
+    "ioredis": "^5.4.1"
+  }
+}

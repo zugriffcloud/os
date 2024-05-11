@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "lib": ["ESNext", "DOM.Iterable"],
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "$lib/*": ["./lib/*"]
+    }
+  }
+}
