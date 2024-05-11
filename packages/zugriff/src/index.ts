@@ -30,7 +30,8 @@ let code = await output;
 
 if (
   args.join(' ').includes('uninstall') &&
-  !args.join(' ').includes('--help')
+  !args.join(' ').includes('--help') &&
+  !args.join(' ').includes('-h')
 ) {
   rmSync(zugriffHomeFolder, { recursive: true, force: true });
 }
