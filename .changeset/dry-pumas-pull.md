@@ -1,0 +1,5 @@
+---
+"zugriff": minor
+---
+
+Fix example
