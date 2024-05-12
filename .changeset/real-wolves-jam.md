@@ -1,5 +1,5 @@
 ---
-"zugriff": minor
+"zugriff": patch
 ---
 
 Fix example
