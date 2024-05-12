@@ -1,6 +1,6 @@
 # zugriff
 
-This package is a wrapper around the [zugriff](https://crates.io/zugriff) binary.
+This package is a wrapper around the [zugriff](https://crates.io/crates/zugriff) binary.
 
 ## Install
 
