@@ -1,5 +1,0 @@
----
-"zugriff": patch
----
-
-Fix example
