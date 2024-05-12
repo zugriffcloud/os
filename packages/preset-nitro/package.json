@@ -12,7 +12,9 @@
   "type": "module",
   "exports": {
     "LICENSE": "./LICENSE",
-    "README.md": "./README.md"
+    "README.md": "./README.md",
+    "nitro.config.ts": "./nitro.config.ts",
+    "entry.ts": "./entry.ts"
   },
   "files": [
     "nitro.config.ts",
