@@ -257,7 +257,7 @@ const server = http.createServer(async (req, res) => {
   };
 
   promise.then((_res) => {
-    res.statusCode = _res.statusCode || 200;
+    res.statusCode = _res.statusCode || _res.status || 200;
     _res.headers.forEach((value, key) => {
       res.setHeader(key, value);
     });
