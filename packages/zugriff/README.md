@@ -23,9 +23,5 @@ zugriff run --watch
 ```
 
 ```zsh
-zugriff deploy --deployment-token <token>
+zugriff deploy --deploymentToken <TOKEN>
 ```
-
----
-
-© zugriff - Licensed under the EUPL
