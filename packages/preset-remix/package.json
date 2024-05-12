@@ -1,6 +1,6 @@
 {
   "name": "@zugriff/preset-remix",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "Deploy your Remix application with zugriff",
   "repository": {
     "type": "git",
