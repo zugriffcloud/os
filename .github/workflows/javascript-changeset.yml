@@ -8,6 +8,9 @@ on:
     types:
       - completed
 
+permissions:
+  contents: write
+
 jobs:
   version:
     timeout-minutes: 10
