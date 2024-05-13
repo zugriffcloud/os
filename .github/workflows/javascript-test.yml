@@ -5,6 +5,7 @@ on:
   push:
     paths-ignore:
       - crates/**
+      - apps/**
 
 jobs:
   test:
