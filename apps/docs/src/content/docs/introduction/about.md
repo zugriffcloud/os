@@ -1,6 +1,6 @@
 ---
 title: About
-description: What zugriff is. What zugriff can. What zugriff cannot do.
+description: What zugriff is. What zugriff can do. What zugriff cannot do.
 ---
 
 With zugriff, you can deploy your web applications and APIs on the edge, close to your users. All without compromising on
