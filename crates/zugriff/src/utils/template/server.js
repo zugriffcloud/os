@@ -92,17 +92,6 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method == 'GET' && req.url) {
     let tempPath = req.url.replace(/\/*$/, '').replace(/(\?.*)$/, '');
-    if (config.puppets[tempPath]) {
-      if (debug)
-        console.debug(
-          'Using puppet "' +
-            config.puppets[tempPath] +
-            '" for path "' +
-            tempPath +
-            '"'
-        );
-      req.url = config.puppets[tempPath];
-    }
 
     for (let redirect of config.redirects) {
       if (redirect.path == tempPath) {
@@ -124,6 +113,18 @@ const server = http.createServer(async (req, res) => {
         res.end();
         return;
       }
+    }
+
+    if (config.puppets[tempPath]) {
+      if (debug)
+        console.debug(
+          'Using puppet "' +
+            config.puppets[tempPath] +
+            '" for path "' +
+            tempPath +
+            '"'
+        );
+      req.url = config.puppets[tempPath];
     }
 
     let filePath = path.join(
