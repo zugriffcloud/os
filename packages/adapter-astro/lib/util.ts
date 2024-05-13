@@ -52,3 +52,16 @@ export function staticRouter(
 
   return routes;
 }
+
+export async function doesFileExist(location) {
+  let resolver;
+  let exists = new Promise((resolve) => (resolver = resolve));
+  fs.lstat(location, (err, stats) => {
+    if (err || !stats.isFile()) {
+      return resolver(false);
+    }
+    resolver(true);
+  });
+
+  return await exists;
+}

@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import {
   createDirIfNotExists,
   discoverFiles,
+  doesFileExist,
   staticRouter,
   writeFile,
 } from '$lib/util';
@@ -135,20 +136,67 @@ export default function createIntegration(
             fs.readFileSync(buildPath).toString()
           );
 
+          let assets = discoverFiles(_config.build.client.pathname).map(
+            (asset) => (asset.startsWith('/') ? asset : '/' + asset)
+          );
+
           let puppets = {};
+          let redirects = [];
 
           for (let route of options.routes) {
+            if (route.type == 'redirect') {
+              if (typeof route.redirect == 'string') {
+                redirects.push({
+                  path: route.route,
+                  status: 308,
+                  location: route.redirect,
+                });
+              }
+
+              continue;
+            }
+
+            if (route.type != 'page') continue;
+
             if (route.prerender) {
-              let path = route.route.replace(/\/$/g, '');
-              puppets[path] = path + '/index.html';
+              if (route.params.length > 0) {
+                for (let asset of assets.filter((asset) =>
+                  route.pattern.test(asset)
+                )) {
+                  if (!asset.endsWith('.html')) continue;
+                  let parts = asset.split('/');
+                  parts.pop();
+
+                  let puppet =
+                    parts.length > 1 ? parts.join('/') : '/' + parts.join('/');
+                  if (puppet == '/' && asset != '/index.html') continue;
+
+                  puppets[puppet] = asset;
+                }
+              } else {
+                if (route.route == '/' || route.route == '/index.html') {
+                  if (assets.includes('/index.html')) {
+                    puppets['/'] = '/index.html';
+                  }
+                  continue;
+                }
+
+                if (route.route.endsWith('/index.html')) {
+                  if (assets.includes(route.route)) {
+                    puppets[route.route.replace(/\/index\.html$/, '')] =
+                      route.route;
+                  }
+
+                  continue;
+                }
+
+                if (assets.includes(route.route + '.html')) {
+                  puppets[route.route] = route.route + '.html';
+                }
+              }
             }
           }
 
-          for (let [from, to] of Object.entries(config.puppets || {})) {
-            puppets[from.replace(/\/$/, '')] = to;
-          }
-
-          let redirects = [];
           for (let redirect of config.redirects || []) {
             redirect.path = redirect.path.replace(/\/$/g, '');
             redirects.push(redirect);
@@ -164,9 +212,7 @@ export default function createIntegration(
               functions: [{ path: '/index.js', pattern: '*' }],
               puppets,
               redirects,
-              assets: discoverFiles(_config.build.client.pathname).map(
-                (asset) => (asset.startsWith('/') ? asset : '/' + asset)
-              ),
+              assets,
             })
           );
 
@@ -183,12 +229,6 @@ export default function createIntegration(
             adapterConfig.disableAssetsDefaultIndexHTMLRedirect == true
               ? []
               : staticRouter(assets);
-
-          let puppets = {};
-
-          for (let [from, to] of Object.entries(config.puppets || {})) {
-            puppets[from.replace(/\/$/, '')] = to;
-          }
 
           for (let redirect of config.redirects || []) {
             redirect.path = redirect.path.replace(/\/$/g, '');
