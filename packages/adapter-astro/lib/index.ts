@@ -122,7 +122,7 @@ export default function createIntegration(
             allowOverwrite: true,
             format: 'esm',
             bundle: true,
-            minify: false,
+            minify: true,
             logLevel: 'error',
             banner: { js: 'globalThis.global = globalThis;' },
             logOverride: {
