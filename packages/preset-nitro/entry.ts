@@ -5,7 +5,7 @@ import '#internal/nitro/virtual/polyfill';
 const nitroApp = useNitroApp();
 
 export default {
-  async fetch(request: Request) {
+  async fetch(request) {
     const url = new URL(request.url);
 
     let body;
