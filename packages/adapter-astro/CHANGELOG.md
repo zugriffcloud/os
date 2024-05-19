@@ -1,5 +1,11 @@
 # @zugriff/adapter-astro
 
+## 1.0.2
+
+### Patch Changes
+
+- 42681cd: minify output
+
 ## 1.0.1
 
 ### Patch Changes
