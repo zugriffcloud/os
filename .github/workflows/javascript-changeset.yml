@@ -33,7 +33,7 @@ jobs:
           node-version: 20.x
           cache: pnpm
 
-      - run: export ZUGRIFF_SKIP_POSTINSTALL=true
+      - run: echo "ZUGRIFF_SKIP_POSTINSTALL=true" >> $GITHUB_ENV
       - run: pnpm install --frozen-lockfile
 
       - uses: changesets/action@v1
