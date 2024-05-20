@@ -19,9 +19,11 @@ export default function (
       const puppets = {};
 
       let redirects = (options.redirects || []).map((redirect) => {
+        let path = redirect.path.replace(/\/$/, '');
+
         return {
           ...redirect,
-          path: redirect.path.replace(/\/$/, ''),
+          path: path == '' ? '/' : path,
         };
       });
 
@@ -30,7 +32,7 @@ export default function (
           if (route.prerender) {
             let id = route.id.replace(/\/$/, '');
             let to = id == '' ? '/index.html' : route.id + '.html';
-            puppets[id] = to;
+            puppets[id == '' ? '/' : id] = to;
           }
         }
       }
