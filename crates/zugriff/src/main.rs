@@ -208,7 +208,7 @@ pub struct Args {
   pub account_token: Option<String>,
   #[command(subcommand)]
   pub action: Actions,
-  #[clap(short, long)]
+  #[clap(short, long = "yes")]
   /// Accept defaults
   pub y: bool,
 }
