@@ -37,8 +37,7 @@ jobs:
           node-version: 20.x
           cache: 'pnpm'
 
-      - run: touch .zugriff_no_postinstall
-      - run: touch packages/zugriff/.zugriff_no_postinstall
+      - run: export ZUGRIFF_SKIP_POSTINSTALL=true
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm build

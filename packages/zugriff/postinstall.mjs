@@ -1,21 +1,14 @@
-import * as fs from 'node:fs';
 import { spawn } from 'node:child_process';
 
-if (await doesFileExist('./.zugriff_no_postinstall')) {
+import * as fs from 'node:fs';
+
+const postinstall = process.env.ZUGRIFF_SKIP_POSTINSTALL;
+
+if (
+  postinstall &&
+  (postinstall == '1' || postinstall.toLowerCase() == 'true')
+) {
   process.exit();
-}
-
-async function doesFileExist(location) {
-  let resolver;
-  let exists = new Promise((resolve) => (resolver = resolve));
-  fs.lstat(location, (err, stats) => {
-    if (err || !stats.isFile()) {
-      return resolver(false);
-    }
-    resolver(true);
-  });
-
-  return await exists;
 }
 
 let resolver;

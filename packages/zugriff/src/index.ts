@@ -1,13 +1,22 @@
-import { rmSync } from 'node:fs';
 import { cwd, exit } from 'node:process';
 import { spawn } from 'node:child_process';
 
-import { binaryLocation, zugriffHomeFolder } from '$src/environment';
+import { binaryLocation } from '$src/environment';
 
 let resolver: ((code: number) => void) | undefined;
 let output = new Promise<number>((resolve) => (resolver = resolve));
 
 let args = process.argv.slice(2);
+
+if (
+  args.join(' ').includes('uninstall') &&
+  !args.join(' ').includes('--help') &&
+  !args.join(' ').includes('-h')
+) {
+  console.info(
+    'Please consider using your package manager to clean up files this binary did not download or create.'
+  );
+}
 
 let child = spawn(binaryLocation, args, {
   cwd: cwd(),
@@ -27,13 +36,5 @@ child.on('exit', (code) => {
 });
 
 let code = await output;
-
-if (
-  args.join(' ').includes('uninstall') &&
-  !args.join(' ').includes('--help') &&
-  !args.join(' ').includes('-h')
-) {
-  rmSync(zugriffHomeFolder, { recursive: true, force: true });
-}
 
 exit(code);

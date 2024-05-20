@@ -103,11 +103,6 @@ let binaryResponse = await fetch(matchingAsset.url, {
   },
 });
 
-try {
-  rmSync(zugriffHomeFolder, { recursive: true });
-} catch (error) {}
-mkdirSync(zugriffHomeFolder, { recursive: true });
-
 let archiveTempPath = temporaryFile({ name: matchingAsset.name });
 let archiveWriteStream = createWriteStream(archiveTempPath, { flags: 'wx' });
 await finished(Readable.fromWeb(binaryResponse.body).pipe(archiveWriteStream));
