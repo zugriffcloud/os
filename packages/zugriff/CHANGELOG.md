@@ -1,5 +1,11 @@
 # zugriff
 
+## 1.0.2
+
+### Patch Changes
+
+- a85da86: improve installation and allow skipping `postinstall` with an environment variable
+
 ## 1.0.1
 
 ### Patch Changes
