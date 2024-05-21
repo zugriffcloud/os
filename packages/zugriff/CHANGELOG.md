@@ -1,5 +1,11 @@
 # zugriff
 
+## 1.0.3
+
+### Patch Changes
+
+- 9467f47: fix windows installation
+
 ## 1.0.2
 
 ### Patch Changes
