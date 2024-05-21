@@ -1,7 +1,6 @@
 import { exit } from 'node:process';
 import { arch, platform } from 'node:os';
-import { createWriteStream, chmod, mkdirSync, rmSync } from 'node:fs';
-import { exec } from 'node:child_process';
+import { createWriteStream, chmod, rmSync } from 'node:fs';
 import { finished } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 
@@ -116,6 +115,7 @@ let extracted = new Promise((resolve) => (resolver = resolve));
 if (matchingAsset.name.endsWith('zip')) {
   yauzl.open(archiveTempPath, { lazyEntries: true }, function (err, zipfile) {
     if (err) throw err;
+
     zipfile.readEntry();
     zipfile.on('entry', function (entry) {
       if (entry.fileName.endsWith('exe')) {
@@ -142,21 +142,12 @@ if (matchingAsset.name.endsWith('zip')) {
   });
 
   resolver(true);
+  rmSync(archiveTempPath);
 }
-
-rmSync(archiveTempPath);
 
 await extracted;
 
-if (platform() == 'win32') {
-  exec(`icacls ${binaryLocation} /grant Everyone:F`, (error, stderr) => {
-    if (error || stderr.length > 0) {
-      console.error('Unable to change permissions of file', binaryLocation);
-      console.error(error || stderr);
-      process.exit(1);
-    }
-  });
-} else {
+if (platform() != 'win32') {
   await chmod(binaryLocation, 0o755, (error) => {
     if (error instanceof Error) {
       console.error('Unable to change permissions of file', binaryLocation);
