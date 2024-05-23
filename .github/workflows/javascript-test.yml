@@ -6,6 +6,10 @@ on:
     paths-ignore:
       - crates/**
       - apps/**
+      - Cargo.lock
+      - Cargo.toml
+      - rust-toolchain.toml
+      - rustfmt.toml
 
 jobs:
   test:
