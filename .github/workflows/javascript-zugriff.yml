@@ -5,9 +5,8 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - crates/**
-      - packages/**
+    paths:
+      - apps/**
 
 jobs:
   deploy:
