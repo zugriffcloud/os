@@ -1,5 +1,6 @@
 use async_signal::{Signal, Signals};
 use futures::StreamExt;
+use hotwatch::EventKind;
 use hotwatch::Hotwatch;
 use signal_hook::low_level;
 use std::{
@@ -11,7 +12,7 @@ use std::{
 };
 use symlink::{symlink_dir, symlink_file};
 use tempfile::TempDir;
-use tokio::{fs::read_to_string, process::Command, sync::mpsc, task::JoinSet};
+use tokio::{process::Command, sync::mpsc, task::JoinSet};
 
 use path_absolutize::Absolutize;
 
@@ -38,6 +39,7 @@ pub async fn run(
   let found_dot_zugriff = base.join(".zugriff").is_dir();
   let pack = pack || !found_dot_zugriff;
 
+  #[cfg(unix)]
   let mut signals = Signals::new(&[
     Signal::Term,
     Signal::Abort,
@@ -45,6 +47,9 @@ pub async fn run(
     Signal::Int,
   ])
   .unwrap();
+
+  #[cfg(windows)]
+  let mut signals = Signals::new(&[Signal::Int]).unwrap();
 
   let _base = base.clone();
   tokio::spawn(async move {
@@ -61,12 +66,14 @@ pub async fn run(
     let (s, mut r) = mpsc::unbounded_channel();
 
     let _base = base.clone();
+    let _assets = assets.clone();
+    let _function = function.clone();
     set.spawn(async move {
       let mut handle = Pure::new(tokio::spawn(setup(
         _base.clone(),
         cwd.clone(),
-        function.clone(),
-        assets.clone(),
+        _function.clone(),
+        _assets.clone(),
         puppets.clone(),
         redirects.clone(),
         disable_assets_default_index_html_redirect,
@@ -79,8 +86,8 @@ pub async fn run(
         handle = Pure::new(tokio::spawn(setup(
           _base.clone(),
           cwd.clone(),
-          function.clone(),
-          assets.clone(),
+          _function.clone(),
+          _assets.clone(),
           puppets.clone(),
           redirects.clone(),
           disable_assets_default_index_html_redirect,
@@ -92,19 +99,65 @@ pub async fn run(
 
     let _base = base.clone();
     let mut hotwatch = Hotwatch::new().unwrap();
-    hotwatch
-      .watch(env::current_dir().unwrap(), move |event| {
-        for path in event.paths {
-          if let Ok(path) = path.strip_prefix(Path::new(&_base)) {
-            // Ignore changes within special `.zugriff` directory
-            if !path.starts_with(".zugriff") && !path.starts_with("node_modules") {
-              s.send(true).unwrap();
+
+    macro_rules! watch_handler {
+      ($s:expr) => {
+        move |event| {
+          match event.kind {
+            EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => (),
+            _ => return,
+          };
+
+          for path in event.paths {
+            if !path
+              .components()
+              .any(|c| c.as_os_str() == ".zugriff" || c.as_os_str() == "node_modules")
+            {
+              $s.send(true).unwrap();
               break;
             }
           }
         }
-      })
-      .unwrap();
+      };
+    }
+
+    {
+      let s = s.clone();
+      if let Err(err) = hotwatch.watch(&base, watch_handler!(s)) {
+        println!(
+          "Unable to watch \"{:?}\".",
+          base.clone().absolutize().unwrap_or(base.into())
+        );
+        error!("{:?}", err);
+        return ExitCode::FAILURE;
+      }
+    }
+
+    for asset in assets {
+      if let Ok(canonical) = base.join(&asset).canonicalize() {
+        if !canonical.starts_with(&base) {
+          let s = s.clone();
+          if let Err(err) = hotwatch.watch(&canonical, watch_handler!(s)) {
+            println!("Unable to watch \"{:?}\".", canonical);
+            error!("{:?}", err);
+            return ExitCode::FAILURE;
+          }
+        }
+      }
+    }
+
+    if let Some(function) = function {
+      if let Ok(canonical) = base.join(&function).canonicalize() {
+        if !canonical.starts_with(&base) {
+          let s = s.clone();
+          if let Err(err) = hotwatch.watch(&canonical, watch_handler!(s)) {
+            println!("Unable to watch \"{:?}\".", canonical);
+            error!("{:?}", err);
+            return ExitCode::FAILURE;
+          }
+        }
+      }
+    }
 
     while let Some(_) = set.join_next().await {}
   } else {
@@ -141,7 +194,22 @@ async fn setup(
   // * Link node_modules
   let node_modules = base.join("node_modules");
   if node_modules.is_dir() {
-    symlink_dir(node_modules, tempdir.path().join("node_modules")).unwrap();
+    let dest_node_modules = tempdir.path().join("node_modules");
+
+    #[cfg(unix)]
+    symlink_dir(node_modules, dest_node_modules).unwrap();
+
+    // symlinking on windows requires permissions we do not have
+    #[cfg(windows)]
+    {
+      fs_extra::dir::create_all(&dest_node_modules, false).unwrap();
+      fs_extra::dir::copy(
+        node_modules,
+        &dest_node_modules,
+        &fs_extra::dir::CopyOptions::new(),
+      )
+      .unwrap();
+    }
   }
 
   // * Copy .env files
@@ -158,28 +226,19 @@ async fn setup(
   }
 
   // * Copy package.json
-  let mut externals = Vec::new();
   let package_json = base.join("package.json");
   if package_json.is_file() && pack {
+    #[cfg(unix)]
     symlink_file(&package_json, tempdir.path().join("package.json")).unwrap();
-    if let Ok(package_json) = read_to_string(package_json).await {
-      if let Ok(package_json) = serde_json::from_str::<serde_json::Value>(&package_json) {
-        if let Some(dependencies) = package_json.get("dependencies") {
-          if let Some(dependencies) = dependencies.as_object() {
-            externals = dependencies
-              .keys()
-              .map(|k| k.to_string())
-              .collect::<Vec<String>>();
-          }
-        }
-      }
-    }
+
+    #[cfg(windows)]
+    copy(&package_json, tempdir.path().join("package.json")).unwrap();
   }
 
   // * Pack
   let dot_zugriff = if pack {
     match shadow(
-      externals,
+      Vec::new(),
       cwd,
       function,
       assets,
@@ -206,8 +265,11 @@ async fn setup(
     .write_all(
       SERVER
         .replace("<DEBUG>", &env::var("DEBUG").is_ok().to_string())
-        .replace("<BASEDIR>", base.to_str().unwrap())
-        .replace("<DOT_ZUGRIFF>", dot_zugriff.to_str().unwrap())
+        .replace("<BASEDIR>", &base.to_str().unwrap().replace('\\', "\\\\"))
+        .replace(
+          "<DOT_ZUGRIFF>",
+          &dot_zugriff.to_str().unwrap().replace('\\', "\\\\"),
+        )
         .replace("<ADDRESS>", &address.unwrap_or("127.0.0.1".into()))
         .as_bytes(),
     )

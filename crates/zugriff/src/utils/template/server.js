@@ -201,6 +201,10 @@ const server = http.createServer(async (req, res) => {
   route = route.replace(/^\//, '');
   let routePath = path.join(dotZugriff, 'functions', route);
 
+  if (/^[Cc]\:/.test(routePath)) {
+    routePath = routePath.replace(/\\/g, '/').replace(/^[Cc]\:/, '');
+  }
+
   globalThis.addEventListener('fetch', (event) => {
     event.respondWith(new Response(null, { status: 404 }));
   });
