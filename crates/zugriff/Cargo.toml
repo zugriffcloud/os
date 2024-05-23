@@ -1,6 +1,6 @@
 [package]
 name = "zugriff"
-version = "1.0.4"
+version = "1.0.5"
 edition = "2021"
 license = "EUPL-1.2"
 repository = "https://github.com/zugriffcloud/os"
@@ -10,7 +10,7 @@ description = "zugriff CLI"
 [dependencies]
 actix-web.workspace = true
 tokio = { workspace = true, features = ["full"] }
-awc = { workspace = true, features = ["rustls-0_21"] }
+awc = { workspace = true, features = ["rustls-0_23"] }
 clap = { workspace = true, features = ["derive", "env"] }
 human-panic.workspace = true
 which.workspace = true
