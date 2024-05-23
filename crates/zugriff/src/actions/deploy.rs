@@ -22,7 +22,7 @@ use crate::{
 
 pub async fn deploy(
   cwd: Option<String>,
-  deployment_token: String,
+  deployment_token: Option<String>,
   function: Option<String>,
   assets: Vec<String>,
   promotions: Option<Vec<String>>,
@@ -35,6 +35,18 @@ pub async fn deploy(
   disable_assets_default_index_html_redirect: bool,
   pack: bool,
 ) -> ExitCode {
+  let deployment_token = match deployment_token {
+    Some(deployment_token) => deployment_token,
+    None => {
+      if dry_run {
+        "".into()
+      } else {
+        println!("Missing Deploymen Token. Aborting.");
+        return ExitCode::FAILURE;
+      }
+    }
+  };
+
   let build_base = match cwd.clone() {
     Some(cwd) => Path::new(&cwd).join(".zugriff"),
     None => Path::new(".zugriff").to_path_buf(),

@@ -72,7 +72,7 @@ pub enum Actions {
   Deploy {
     /// Token to deploy and manage applications
     #[clap(long = "deploymentToken", env = "ZUGRIFF_CLI_DEPLOYMENT_TOKEN")]
-    deployment_token: String,
+    deployment_token: Option<String>,
 
     /// Change current working directory (e.g. "./my-app/")
     #[arg(long)]
