@@ -170,11 +170,11 @@ pub async fn shadow(
 
   if let Some(function) = &function {
     let entrypoint = base.join(function);
-    let outfile = dot_zugriff.join("functions").join("index.js");
+    let outfile = dot_zugriff.join("functions").join("index.mjs");
 
     bundle_function(externals, entrypoint.absolutize().unwrap().into(), outfile).await?;
     config.functions.push(DynamicRoute {
-      path: "/index.js".into(),
+      path: "/index.mjs".into(),
       pattern: "*".into(),
     })
   }
@@ -227,7 +227,15 @@ pub fn compress(dot_zugriff: PathBuf) -> Result<NamedTempFile> {
   let file = NamedTempFile::new()?;
   let mut tarball = Builder::new(file.as_file());
 
-  tarball.append_dir_all(".", dot_zugriff)?;
+  tarball.append_file("config.json", &mut File::open(&config)?)?;
+
+  if dot_zugriff.join("functions").is_dir() {
+    tarball.append_dir_all("functions", dot_zugriff.join("functions"))?;
+  }
+
+  if dot_zugriff.join("assets").is_dir() {
+    tarball.append_dir_all("assets", dot_zugriff.join("assets"))?;
+  }
 
   tarball.finish()?;
   tarball.get_mut().rewind()?;
