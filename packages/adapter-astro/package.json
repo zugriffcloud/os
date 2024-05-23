@@ -36,10 +36,10 @@
   ],
   "author": "Luca Goslar <luca@zugriff.eu>",
   "license": "MIT",
-  "dependencies": {
-    "esbuild": "^0.21.1"
-  },
   "peerDependencies": {
     "astro": "^4"
+  },
+  "dependencies": {
+    "esbuild": "^0.21.3"
   }
 }
