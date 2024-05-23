@@ -192,6 +192,11 @@ export default function createIntegration(
 
                 if (assets.includes(route.route + '.html')) {
                   puppets[route.route] = route.route + '.html';
+                  continue;
+                }
+
+                if (assets.includes(route.route + '/index.html')) {
+                  puppets[route.route] = route.route + '/index.html';
                 }
               }
             }
