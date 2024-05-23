@@ -74,7 +74,7 @@ function discoverFiles(basePath: string, clean = true): Array<string> {
     if (discoveryStats.isDirectory()) {
       files = files.concat(discoverFiles(fullFilePath, false));
     } else {
-      files.push(fullFilePath);
+      files.push(path.posix.join(basePath.replace(/\\/g, '/'), discovery));
     }
   }
 
