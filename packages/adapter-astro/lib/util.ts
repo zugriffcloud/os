@@ -1,6 +1,5 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as esbuild from 'esbuild';
 
 export function createDirIfNotExists(location: string) {
   try {
@@ -14,6 +13,8 @@ export function writeFile(location: string, data: string) {
 }
 
 export function discoverFiles(basePath: string, clean = true): Array<string> {
+  basePath = basePath.replace(/\/[cC]:/, '');
+
   let files: Array<string> = [];
 
   for (const discovery of fs.readdirSync(basePath)) {
@@ -23,7 +24,7 @@ export function discoverFiles(basePath: string, clean = true): Array<string> {
     if (discoveryStats.isDirectory()) {
       files = files.concat(discoverFiles(fullFilePath, false));
     } else {
-      files.push(fullFilePath);
+      files.push(path.posix.join(basePath.replace(/\\/g, '/'), discovery));
     }
   }
 
