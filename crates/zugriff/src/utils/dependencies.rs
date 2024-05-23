@@ -134,7 +134,7 @@ pub async fn install(arg: &Args) {
       };
 
       let npm_url = format!(
-        "https://registry.npmjs.org/@esbuild/{}/-/{}-0.21.1.tgz",
+        "https://registry.npmjs.org/@esbuild/{}/-/{}-0.21.3.tgz",
         package, package
       );
 
@@ -163,7 +163,10 @@ pub async fn install(arg: &Args) {
 
       let esbuild = format!("esbuild{}", EXE_SUFFIX);
 
-      let tmp_path = folder.path().join("package").join("bin").join(&esbuild);
+      let tmp_path = match EXE_SUFFIX {
+        ".exe" => folder.path().join("package").join(&esbuild),
+        _ => folder.path().join("package").join("bin").join(&esbuild),
+      };
 
       copy(tmp_path, ESBUILD_ZUGRIFF.as_path()).await.unwrap();
 
