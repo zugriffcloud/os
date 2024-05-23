@@ -20,15 +20,7 @@ if (
 
 let child = spawn(binaryLocation, args, {
   cwd: cwd(),
-  stdio: 'pipe',
-});
-
-child.stdout.on('data', (data) => {
-  process.stdout.write(data);
-});
-
-child.stderr.on('data', (data) => {
-  process.stderr.write(data);
+  stdio: 'inherit',
 });
 
 child.on('exit', (code) => {
