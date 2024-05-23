@@ -1,4 +1,4 @@
-use std::{env, process::ExitCode, time::Duration};
+use std::{env, process::ExitCode};
 
 use indicatif::MultiProgress;
 use tokio::{fs, task::JoinSet};
@@ -14,6 +14,15 @@ enum Step {
 }
 
 pub async fn uninstall() -> ExitCode {
+  #[cfg(windows)]
+  {
+    pretty::log(
+      Some(Status::WARNING),
+      "Please remove the executable manually",
+    );
+    pretty::log(None, &format!("{:?}\n", env::current_exe().unwrap()));
+  }
+
   let mut set = JoinSet::new();
 
   let multi_pg = MultiProgress::new();
@@ -23,7 +32,6 @@ pub async fn uninstall() -> ExitCode {
   let pb = multi_pg.add(pb);
   pb.set_message("Emptying cache");
   set.spawn(async move {
-    tokio::time::sleep(Duration::from_secs(5)).await;
     let cache_dir = cache_dir();
     fs::remove_dir_all(cache_dir).await.unwrap();
 
@@ -33,22 +41,24 @@ pub async fn uninstall() -> ExitCode {
     Step::CACHE
   });
 
-  let pb = default_spinner();
-  let pb = multi_pg.add(pb);
-  pb.set_message("Removing executable");
-  set.spawn(async move {
-    tokio::time::sleep(Duration::from_secs(3)).await;
-    fs::remove_file(env::current_exe().unwrap()).await.unwrap();
+  #[cfg(unix)]
+  {
+    let pb = default_spinner();
+    let pb = multi_pg.add(pb);
+    pb.set_message("Removing executable");
+    set.spawn(async move {
+      fs::remove_file(env::current_exe().unwrap()).await.unwrap();
 
-    pb.finish_and_clear();
-    pb.println(pretty::format(Some(Status::REMOVED), "Executable removed"));
+      pb.finish_and_clear();
+      pb.println(pretty::format(Some(Status::REMOVED), "Executable removed"));
 
-    Step::EXE
-  });
+      Step::EXE
+    });
+  }
 
   while let Some(_) = set.join_next().await {}
 
-  println!("\n\nYou will be missed. Bye. 👋");
+  println!("\n\nYou will be missed. Take care.");
 
   ExitCode::SUCCESS
 }
