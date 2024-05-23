@@ -22,13 +22,13 @@ export default function zugriff(
     remixConfigResolved: async (config) => {
       if (process.env.NODE_ENV == 'production') {
         try {
-          fs.rmSync('.zugriff/functions', { recursive: true });
+          fs.rmSync(path.join('.zugriff', 'functions'), { recursive: true });
         } catch (_) {}
         try {
-          fs.rmSync('.zugriff/assets', { recursive: true });
+          fs.rmSync(path.join('.zugriff', 'assets'), { recursive: true });
         } catch (_) {}
         try {
-          fs.rmSync('.zugriff/config.json');
+          fs.rmSync(path.join('.zugriff', 'config.json'));
         } catch (_) {}
       }
 
@@ -86,10 +86,13 @@ export default function zugriff(
       }
     },
     remixConfig: () => ({
-      buildDirectory: '.zugriff/tmp',
+      buildDirectory: path.join('.zugriff', 'tmp'),
       manifest: true,
       buildEnd: (config) => {
-        fs.renameSync('.zugriff/tmp/client', '.zugriff/assets');
+        fs.renameSync(
+          path.join('.zugriff', 'tmp', 'client'),
+          path.join('.zugriff', 'assets')
+        );
 
         if (config.remixConfig.ssr) {
           let handler = path.join(
@@ -113,11 +116,11 @@ export default function zugriff(
             external: ['postgres', 'ioredis', 'nodemailer', 'dotenv'],
             banner: { js: 'globalThis.global = globalThis;' },
             entryPoints: [handler],
-            outfile: '.zugriff/functions/index.js',
+            outfile: path.join('.zugriff', 'functions', 'index.js'),
           });
 
           fs.writeFileSync(
-            '.zugriff/config.json',
+            path.join('.zugriff', 'config.json'),
             JSON.stringify({
               version: 1,
               meta: {
@@ -126,19 +129,19 @@ export default function zugriff(
               functions: [{ path: '/index.js', pattern: '*' }],
               puppets: {},
               redirects: [],
-              assets: discoverFiles('.zugriff/assets'),
+              assets: discoverFiles(path.join('.zugriff', 'assets')),
             })
           );
         } else {
           // create route handler
           try {
-            fs.mkdirSync('.zugriff/functions');
+            fs.mkdirSync(path.join('.zugriff', 'functions'));
           } catch (_) {}
 
-          let assets = discoverFiles('.zugriff/assets');
+          let assets = discoverFiles(path.join('.zugriff', 'assets'));
 
           fs.writeFileSync(
-            '.zugriff/config.json',
+            path.join('.zugriff', 'config.json'),
             JSON.stringify({
               version: 1,
               meta: {
