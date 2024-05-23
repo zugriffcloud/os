@@ -16,6 +16,31 @@ export default function (
   return {
     name: '@zugriff/adapter-sveltekit',
     async adapt(builder: Builder) {
+      const zugriff_content = '.zugriff';
+      const zugriff_tmp_content = builder.getBuildDirectory('.zugriff_tmp');
+
+      const static_content = path.join(
+        zugriff_content,
+        'assets',
+        builder.config.kit.paths.base
+      );
+
+      try {
+        fs.rmSync(zugriff_tmp_content, { recursive: true, force: true });
+      } catch {}
+      fs.mkdirSync(path.dirname(zugriff_tmp_content), { recursive: true });
+
+      try {
+        fs.rmSync(zugriff_content, { recursive: true, force: true });
+      } catch {}
+      fs.mkdirSync(path.dirname(zugriff_content), { recursive: true });
+
+      await builder.generateFallback(path.join(static_content, '404.html'));
+      builder.writeClient(static_content);
+      builder.writePrerendered(static_content);
+
+      let assets = discoverFiles(static_content);
+
       const puppets = {};
 
       let redirects = (options.redirects || []).map((redirect) => {
@@ -32,7 +57,9 @@ export default function (
           if (route.prerender) {
             let id = route.id.replace(/\/$/, '');
             let to = id == '' ? '/index.html' : route.id + '.html';
-            puppets[id == '' ? '/' : id] = to;
+            if (assets.includes(to)) {
+              puppets[id == '' ? '/' : id] = to;
+            }
           }
         }
       }
@@ -41,25 +68,6 @@ export default function (
         puppets[path] = to;
       }
 
-      const zugriff_content = '.zugriff';
-      const zugriff_tmp_content = builder.getBuildDirectory('.zugriff_tmp');
-
-      try {
-        fs.rmSync(zugriff_tmp_content, { recursive: true, force: true });
-      } catch {}
-      fs.mkdirSync(path.dirname(zugriff_tmp_content), { recursive: true });
-
-      try {
-        fs.rmSync(zugriff_content, { recursive: true, force: true });
-      } catch {}
-      fs.mkdirSync(path.dirname(zugriff_content), { recursive: true });
-
-      const static_content = `${zugriff_content}/assets${builder.config.kit.paths.base}`;
-
-      await builder.generateFallback(path.join(static_content, '404.html'));
-      builder.writeClient(static_content);
-      builder.writePrerendered(static_content);
-
       const relativePath = path.posix.relative(
         zugriff_tmp_content,
         builder.getServerDirectory()
@@ -67,25 +75,25 @@ export default function (
 
       builder.copy(
         path.join(__dirname, 'handler.js'),
-        zugriff_tmp_content + '/handler.js',
+        path.join(zugriff_tmp_content, 'handler.js'),
         {
           replace: {
-            SERVER: relativePath + '/index.js',
+            SERVER: path.posix.join(relativePath, 'index.js'),
             MANIFEST: './manifest.js',
           },
         }
       );
 
       writeFile(
-        `${zugriff_tmp_content}/manifest.js`,
+        path.join(zugriff_tmp_content, 'manifest.js'),
         `export const manifest = ${builder.generateManifest({
           relativePath,
         })};\n`
       );
 
       await esbuild.build({
-        entryPoints: [zugriff_tmp_content + '/handler.js'],
-        outfile: zugriff_content + '/functions/index.js',
+        entryPoints: [path.join(zugriff_tmp_content, 'handler.js')],
+        outfile: path.join(zugriff_content, 'functions', 'index.js'),
         external: ['postgres', 'ioredis', 'nodemailer', 'dotenv'],
         target: 'esnext',
         bundle: true,
@@ -97,7 +105,7 @@ export default function (
       });
 
       writeFile(
-        zugriff_content + '/config.json',
+        path.join(zugriff_content, 'config.json'),
         JSON.stringify({
           version: 1,
           meta: {
@@ -106,7 +114,7 @@ export default function (
           functions: [{ path: '/index.js', pattern: '*' }],
           puppets,
           redirects,
-          assets: discoverFiles(static_content),
+          assets,
         })
       );
     },
@@ -131,7 +139,7 @@ function discoverFiles(basePath: string, clean = true): Array<string> {
     if (discoveryStats.isDirectory()) {
       files = files.concat(discoverFiles(fullFilePath, false));
     } else {
-      files.push(fullFilePath);
+      files.push(path.posix.join(basePath.replace(/\\/g, '/'), discovery));
     }
   }
 
