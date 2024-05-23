@@ -13,6 +13,7 @@ use std::{
 use symlink::{symlink_dir, symlink_file};
 use tempfile::TempDir;
 use tokio::{process::Command, sync::mpsc, task::JoinSet};
+use which::which;
 
 use path_absolutize::Absolutize;
 
@@ -278,7 +279,7 @@ async fn setup(
   let mut node = if NODE_ZUGRIFF.is_file() {
     Command::new(NODE_ZUGRIFF.as_os_str())
   } else {
-    Command::new("node")
+    Command::new(which("node").unwrap())
   };
   node.kill_on_drop(true);
   node.arg(server.absolutize().unwrap().as_os_str().to_str().unwrap());

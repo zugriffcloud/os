@@ -18,6 +18,7 @@ use std::{
 use tar::{Archive, Builder};
 use tempfile::NamedTempFile;
 use tokio::process::Command;
+use which::which;
 
 #[cfg(target_family = "unix")]
 use std::os::unix::fs::MetadataExt as _;
@@ -455,7 +456,7 @@ async fn bundle_function(
   let mut esbuild = if ESBUILD_ZUGRIFF.is_file() {
     Command::new(ESBUILD_ZUGRIFF.as_os_str())
   } else {
-    Command::new("esbuild")
+    Command::new(which("esbuild").unwrap())
   };
 
   esbuild.kill_on_drop(true);
