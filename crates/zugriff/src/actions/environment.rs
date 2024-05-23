@@ -1,6 +1,6 @@
 use std::{
   env,
-  fs::OpenOptions,
+  fs::{File, OpenOptions},
   io::{Read, Seek as _, Write as _},
   path::Path,
   process::ExitCode,
@@ -21,6 +21,10 @@ pub static PREFIX: &'static str = "zugriff_cli_";
 pub static ENVFILE: Lazy<Box<Path>> = Lazy::new(|| cache_dir().join(".env").into_boxed_path());
 
 pub async fn handle(value: EnvironmentAction) -> ExitCode {
+  if !ENVFILE.is_file() {
+    File::create(ENVFILE.clone()).ok();
+  }
+
   match value {
     EnvironmentAction::Set { set } => update_value(set, false),
     EnvironmentAction::Delete { delete } => update_value(delete, true),
