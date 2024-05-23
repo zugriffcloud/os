@@ -1,5 +1,11 @@
 # zugriff
 
+## 1.0.4
+
+### Patch Changes
+
+- f0958ea: fix interactivity
+
 ## 1.0.3
 
 ### Patch Changes
