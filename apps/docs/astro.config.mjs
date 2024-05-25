@@ -10,13 +10,14 @@ export default defineConfig({
   },
   integrations: [
     starlight({
+      favicon: '/favicon.png',
       title: 'zugriff',
       social: {
         github: 'https://github.com/zugriffcloud/os',
       },
       logo: {
-        dark: '/public/docs-logo.svg',
-        light: '/public/docs-logo.svg',
+        dark: '/public/docs-logo-light.svg',
+        light: '/public/docs-logo-dark.svg',
         alt: 'Logo',
         replacesTitle: true,
       },
