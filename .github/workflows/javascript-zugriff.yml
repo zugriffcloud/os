@@ -53,3 +53,5 @@ jobs:
           deploymentToken: ${{ secrets.ZUGRIFF_TOKEN_DOCS }}
           promotions: |
             production
+        env:
+          ZUGRIFF_SKIP_POSTINSTALL: false
