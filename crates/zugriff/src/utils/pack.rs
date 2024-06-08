@@ -6,6 +6,7 @@ use path_absolutize::Absolutize;
 use serde_json::to_vec;
 use size::Size;
 use std::collections::hash_map::RandomState;
+use std::collections::HashSet;
 use std::fs::{copy, read_to_string, File};
 use std::hash::{BuildHasher, Hasher};
 use std::io::{Read, Seek, Write};
@@ -15,6 +16,7 @@ use std::{
   fs::{create_dir_all, remove_dir_all},
   path::{Path, PathBuf},
 };
+use strum::IntoEnumIterator;
 use tar::{Archive, Builder};
 use tempfile::NamedTempFile;
 use tokio::process::Command;
@@ -28,7 +30,7 @@ use std::os::windows::fs::MetadataExt as _;
 
 use crate::utils::configuration::{ConfigurationFile, DynamicRoute, Meta, Technology};
 
-use super::configuration::Redirect;
+use super::configuration::{Interceptor, Method, Redirect};
 use super::dependencies::ESBUILD_ZUGRIFF;
 use super::pretty::{self, Status};
 
@@ -42,6 +44,12 @@ pub async fn shadow(
   puppets_flag: Vec<String>,
   redirects_flag: Vec<String>,
   disable_assets_default_index_html_redirect: bool,
+  interceptors_flag: Vec<String>,
+  prefer_file_router: bool,
+  prefer_puppets: bool,
+  enable_static_router: bool,
+  disable_static_router: bool,
+  disable_function_discovery: bool,
 ) -> anyhow::Result<PathBuf> {
   let current = env::current_dir()?;
   let base = match &cwd {
@@ -139,7 +147,16 @@ pub async fn shadow(
 
     attach_assets(&base.into(), &assets, assets_flag, &mut config).ok();
 
-    attach_middleware(puppets_flag, redirects_flag, true, false, &mut config);
+    attach_middleware(
+      interceptors_flag,
+      puppets_flag,
+      redirects_flag,
+      prefer_file_router,
+      prefer_puppets,
+      enable_static_router,
+      disable_static_router || disable_assets_default_index_html_redirect,
+      &mut config,
+    );
 
     File::create(dot_zugriff.join("config.json"))?.write_all(&to_vec(&config)?)?;
 
@@ -157,7 +174,7 @@ pub async fn shadow(
   let mut config = &mut ConfigurationFile::default();
   config.version = 1;
 
-  if function.is_none() {
+  if function.is_none() && !disable_function_discovery {
     if base.join("index.js").is_file() {
       function = Some("index.js".into());
     } else if base.join("index.ts").is_file() {
@@ -188,10 +205,13 @@ pub async fn shadow(
   )?;
 
   attach_middleware(
+    interceptors_flag,
     puppets_flag,
     redirects_flag,
-    disable_assets_default_index_html_redirect || function.is_some(),
-    true,
+    prefer_file_router,
+    prefer_puppets,
+    enable_static_router,
+    disable_static_router || disable_assets_default_index_html_redirect || function.is_some(),
     &mut config,
   );
 
@@ -342,6 +362,16 @@ pub fn report(compressed: &mut File) {
     );
   }
 
+  if let Some(interceptors) = manifest.interceptors {
+    for interceptor in interceptors {
+      has_middleware = true;
+      println!(
+        "→ {} → {} → {} (Interceptor)",
+        interceptor.method, interceptor.status, interceptor.path
+      );
+    }
+  }
+
   if !has_middleware {
     println!("-");
   }
@@ -368,6 +398,14 @@ fn attach_assets(
       config.assets.push(relative);
     }
   }
+
+  config.assets = config
+    .assets
+    .clone()
+    .into_iter()
+    .collect::<HashSet<String>>()
+    .into_iter()
+    .collect::<Vec<String>>();
 
   Ok(())
 }
@@ -497,46 +535,71 @@ async fn bundle_function(
 }
 
 pub fn attach_middleware(
+  interceptors: Vec<String>,
   puppet: Vec<String>,
   redirect: Vec<String>,
-  disable_assets_default_index_html_redirect: bool,
-  disable_puppet_generation: bool,
+  prefer_file_router: bool,
+  prefer_puppets: bool,
+  enable_static_router: bool,
+  disable_static_router: bool,
   config: &mut ConfigurationFile,
 ) {
   let mut index_index = Vec::new();
 
-  for asset in &config.assets {
-    if asset.ends_with("/index.html")
-      || asset.ends_with("/index.htm")
-      || asset.ends_with("/index.xhtml")
-    {
-      let mut from = asset
-        .trim_end_matches("/index.html")
-        .trim_end_matches("/index.htm")
-        .trim_end_matches("/index.xhtml")
-        .to_owned();
+  if !disable_static_router || enable_static_router {
+    if prefer_file_router {
+      for asset in &config.assets {
+        if asset.ends_with(".html") || asset.ends_with(".htm") || asset.ends_with(".xhtml") {
+          let mut from = asset
+            .trim_end_matches(".html")
+            .trim_end_matches(".htm")
+            .trim_end_matches(".xhtml")
+            .to_owned();
 
-      if from == "" {
-        from.push('/');
+          if from.ends_with("/index") {
+            from = from.trim_end_matches("index").into();
+
+            if from.len() > 1 {
+              from = from.trim_end_matches('/').into();
+            }
+          }
+
+          index_index.push((from, asset));
+        }
       }
+    } else {
+      for asset in &config.assets {
+        if asset.ends_with("/index.html")
+          || asset.ends_with("/index.htm")
+          || asset.ends_with("/index.xhtml")
+        {
+          let mut from = asset
+            .trim_end_matches("/index.html")
+            .trim_end_matches("/index.htm")
+            .trim_end_matches("/index.xhtml")
+            .to_owned();
 
-      index_index.push((from, asset));
+          if from == "" {
+            from.push('/');
+          }
+
+          index_index.push((from, asset));
+        }
+      }
     }
-  }
 
-  if !disable_puppet_generation {
-    for (from, to) in &index_index {
-      config.puppets.insert(from.to_string(), to.to_string());
-    }
-  }
-
-  if !disable_assets_default_index_html_redirect {
-    for (from, to) in index_index {
-      config.redirects.push(Redirect {
-        status: 308,
-        path: from.into(),
-        location: to.into(),
-      });
+    if prefer_puppets {
+      for (from, to) in &index_index {
+        config.puppets.insert(from.to_string(), to.to_string());
+      }
+    } else {
+      for (from, to) in index_index {
+        config.redirects.push(Redirect {
+          status: 308,
+          path: from.into(),
+          location: to.into(),
+        });
+      }
     }
   }
 
@@ -555,22 +618,125 @@ pub fn attach_middleware(
   for redirect in redirect {
     match split_args(&redirect) {
       Some((from, to)) => match split_args(&to) {
-        Some((status, to)) => config.redirects.push(Redirect {
-          status: u16::from_str(&status[1..]).unwrap_or_default(),
-          path: from,
-          location: to,
-        }),
-        None => config.redirects.push(Redirect {
-          status: 308,
-          path: from,
-          location: to,
-        }),
+        Some((status, to)) => {
+          let status = u16::from_str(&status[1..]).unwrap_or_default();
+
+          let redirect = Redirect {
+            status,
+            path: from,
+            location: to,
+          };
+
+          if config.redirects.contains(&redirect) {
+            continue;
+          }
+
+          config.redirects.push(redirect)
+        }
+        None => {
+          let redirect = Redirect {
+            status: 308,
+            path: from,
+            location: to,
+          };
+
+          if config.redirects.contains(&redirect) {
+            continue;
+          }
+
+          config.redirects.push(redirect)
+        }
       },
       None => pretty::log(
         Some(pretty::Status::WARNING),
         &format!("Unable to process redirect \"{}\"", redirect),
       ),
     }
+  }
+
+  let mut _interceptors = HashSet::new();
+
+  for interceptor in interceptors {
+    match split_args(&interceptor) {
+      Some((status, _path)) => match status[1..].parse::<u16>() {
+        Ok(status) => {
+          let mut methods = vec![Method::GET];
+          let mut path = _path;
+
+          if path.find(':').is_some() {
+            match split_args(&path) {
+              Some((method, _path)) => {
+                path = _path;
+                if method == "/*" {
+                  methods = Method::iter().collect::<Vec<_>>();
+                } else {
+                  methods = match method[1..].to_ascii_uppercase().parse() {
+                    Ok::<Method, _>(method) => {
+                      vec![method]
+                    }
+                    Err(_) => {
+                      pretty::log(
+                        Some(Status::WARNING),
+                        &format!(
+                          "Unable to parse method \"{}\" to intercept status code {} with \"{}\"",
+                          &method[1..],
+                          status,
+                          path
+                        ),
+                      );
+                      continue;
+                    }
+                  };
+                }
+              }
+              None => {
+                pretty::log(
+                  Some(Status::WARNING),
+                  &format!(
+                    "Unable to extract method to intercept status code {} with \"{}\"",
+                    status, path
+                  ),
+                );
+                continue;
+              }
+            }
+          }
+
+          if config.assets.contains(&path) {
+            for method in methods {
+              _interceptors.insert(Interceptor {
+                method,
+                status,
+                path: path.clone(),
+              });
+            }
+          } else {
+            pretty::log(
+              Some(Status::WARNING),
+              &format!(
+                "Unable to intercept status code {} because \"{}\" is missing",
+                status, path
+              ),
+            );
+          }
+        }
+        Err(_) => pretty::log(
+          Some(pretty::Status::WARNING),
+          &format!(
+            "Expected HTTP status code for interceptor \"{}\"",
+            interceptor
+          ),
+        ),
+      },
+      None => pretty::log(
+        Some(pretty::Status::WARNING),
+        &format!("Unable to process interceptor \"{}\"", interceptor),
+      ),
+    }
+  }
+
+  if _interceptors.len() > 0 {
+    config.interceptors = Some(_interceptors.into_iter().collect::<Vec<_>>());
   }
 }
 

@@ -91,7 +91,10 @@ const server = http.createServer(async (req, res) => {
   // * Handle static content
 
   if (req.method == 'GET' && req.url) {
-    let tempPath = req.url.replace(/\/*$/, '').replace(/(\?.*)$/, '');
+    let tempPath = req.url
+      .replace(/\/*$/, '')
+      .replace(/(\?.*)$/, '')
+      .replace(/(#.*)$/, '');
 
     for (let redirect of config.redirects) {
       if (redirect.path == tempPath) {
@@ -130,7 +133,7 @@ const server = http.createServer(async (req, res) => {
     let filePath = path.join(
       dotZugriff,
       'assets',
-      req.url.replace(/(\?.*)$/, '')
+      req.url.replace(/(\?.*)$/, '').replace(/(#.*)$/, '')
     );
 
     const extname = String(path.extname(filePath)).toLowerCase();
@@ -190,6 +193,11 @@ const server = http.createServer(async (req, res) => {
       console.debug(
         'Did not find function route match for path "' + tempPath + '"'
       );
+
+    if (await intercept(req.method, 404, res)) {
+      return;
+    }
+
     res.statusCode = 404;
     res.end();
     return;
@@ -261,12 +269,18 @@ const server = http.createServer(async (req, res) => {
     resolver(re);
   };
 
-  promise.then((_res) => {
-    res.statusCode = _res.statusCode || _res.status || 200;
+  promise.then(async (_res) => {
+    let statusCode = _res.statusCode || _res.status || 200;
+    if (await intercept(req.method, statusCode, res)) {
+      return;
+    }
+
+    res.setHeader('X-Zugriff-Static', false);
+    res.statusCode = statusCode;
+
     _res.headers.forEach((value, key) => {
       res.setHeader(key, value);
     });
-    res.setHeader('X-Zugriff-Static', false);
     if (_res.body instanceof ReadableStream) {
       const reader = _res.body.getReader();
       reader.read().then(function processText({ done, value }) {
@@ -284,6 +298,10 @@ const server = http.createServer(async (req, res) => {
   if (callback) {
     callback(_req);
   } else {
+    if (await intercept(req.method, 404, res)) {
+      return;
+    }
+
     res.statusCode = 404;
     res.end();
   }
@@ -292,6 +310,45 @@ const server = http.createServer(async (req, res) => {
 server.listen(port, address, () => {
   console.log(`Listening at http://${address}:${port}/`);
 });
+
+async function intercept(method, code, res) {
+  if (Array.isArray(config.interceptors)) {
+    let interceptor = config.interceptors.find(
+      (i) => i.method == method && i.status == code
+    );
+    if (!interceptor) return false;
+
+    let filePath = path.join(
+      dotZugriff,
+      'assets',
+      interceptor.path.replace(/(\?.*)$/, '').replace(/(#.*)$/, '')
+    );
+    const extname = String(path.extname(filePath)).toLowerCase();
+    const contentType = MIME[extname] || 'application/octet-stream';
+
+    if (await doesFileExist(filePath)) {
+      if (debug) console.debug('Returning file "' + filePath + '"');
+      fs.readFile(filePath, (err, content) => {
+        if (err) {
+          console.error(err);
+          res.writeHead(500);
+          res.end();
+          return true;
+        } else {
+          res.writeHead(code, {
+            'Content-Type': contentType,
+            'X-Zugriff-Static': false,
+          });
+          res.end(content);
+          return;
+        }
+      });
+      return true;
+    }
+  }
+
+  return false;
+}
 
 // Most common MIME types
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types

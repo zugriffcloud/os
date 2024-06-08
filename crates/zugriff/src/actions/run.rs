@@ -31,6 +31,12 @@ pub async fn run(
   disable_assets_default_index_html_redirect: bool,
   pack: bool,
   address: Option<String>,
+  interceptors: Vec<String>,
+  prefer_file_router: bool,
+  prefer_puppets: bool,
+  enable_static_router: bool,
+  disable_static_router: bool,
+  disable_function_discovery: bool,
 ) -> ExitCode {
   let base = match cwd.clone() {
     Some(cwd) => Path::new(&cwd).into(),
@@ -69,6 +75,7 @@ pub async fn run(
     let _base = base.clone();
     let _assets = assets.clone();
     let _function = function.clone();
+    let _interceptors = interceptors.clone();
     set.spawn(async move {
       let mut handle = Pure::new(tokio::spawn(setup(
         _base.clone(),
@@ -80,6 +87,12 @@ pub async fn run(
         disable_assets_default_index_html_redirect,
         pack,
         address.clone(),
+        _interceptors.clone(),
+        prefer_file_router,
+        prefer_puppets,
+        enable_static_router,
+        disable_static_router,
+        disable_function_discovery,
       )));
 
       while let Some(_) = r.recv().await {
@@ -94,6 +107,12 @@ pub async fn run(
           disable_assets_default_index_html_redirect,
           pack,
           address.clone(),
+          _interceptors.clone(),
+          prefer_file_router,
+          prefer_puppets,
+          enable_static_router,
+          disable_static_router,
+          disable_function_discovery,
         )));
       }
     });
@@ -172,6 +191,12 @@ pub async fn run(
       disable_assets_default_index_html_redirect,
       pack,
       address.clone(),
+      interceptors.clone(),
+      prefer_file_router,
+      prefer_puppets,
+      enable_static_router,
+      disable_static_router,
+      disable_function_discovery,
     )
     .await;
   }
@@ -189,6 +214,12 @@ async fn setup(
   disable_assets_default_index_html_redirect: bool,
   pack: bool,
   address: Option<String>,
+  interceptors: Vec<String>,
+  prefer_file_router: bool,
+  prefer_puppets: bool,
+  enable_static_router: bool,
+  disable_static_router: bool,
+  disable_function_discovery: bool,
 ) {
   let tempdir = TempDir::new().unwrap();
 
@@ -246,6 +277,12 @@ async fn setup(
       puppets,
       redirects,
       disable_assets_default_index_html_redirect,
+      interceptors,
+      prefer_file_router,
+      prefer_puppets,
+      enable_static_router,
+      disable_static_router,
+      disable_function_discovery,
     )
     .await
     {

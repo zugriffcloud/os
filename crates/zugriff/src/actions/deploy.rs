@@ -25,7 +25,7 @@ pub async fn deploy(
   deployment_token: Option<String>,
   function: Option<String>,
   assets: Vec<String>,
-  promotions: Option<Vec<String>>,
+  promotions: Vec<String>,
   name: Option<String>,
   description: Option<String>,
   dry_run: bool,
@@ -34,6 +34,12 @@ pub async fn deploy(
   redirect: Vec<String>,
   disable_assets_default_index_html_redirect: bool,
   pack: bool,
+  interceptors: Vec<String>,
+  prefer_file_router: bool,
+  prefer_puppets: bool,
+  enable_static_router: bool,
+  disable_static_router: bool,
+  disable_function_discovery: bool,
 ) -> ExitCode {
   let deployment_token = match deployment_token {
     Some(deployment_token) => deployment_token,
@@ -80,7 +86,16 @@ pub async fn deploy(
       }
     };
 
-    attach_middleware(puppet, redirect, true, true, &mut config);
+    attach_middleware(
+      interceptors,
+      puppet,
+      redirect,
+      prefer_file_router,
+      prefer_puppets,
+      enable_static_router,
+      true,
+      &mut config,
+    );
 
     build_config.set_len(0).unwrap();
     build_config.rewind().unwrap();
@@ -115,6 +130,12 @@ pub async fn deploy(
       puppet,
       redirect,
       disable_assets_default_index_html_redirect,
+      interceptors,
+      prefer_file_router,
+      prefer_puppets,
+      enable_static_router,
+      disable_static_router,
+      disable_function_discovery,
     )
     .await
     {
@@ -169,13 +190,10 @@ pub async fn deploy(
     None => client,
   };
 
-  let client = match promotions {
-    Some(promotions) => client.append_header((
-      "X-DEPLOYMENT-PROMOTIONS",
-      serde_json::to_string(&promotions).unwrap(),
-    )),
-    None => client,
-  };
+  let client = client.append_header((
+    "X-DEPLOYMENT-PROMOTIONS",
+    serde_json::to_string(&promotions).unwrap(),
+  ));
 
   let (mut tx, rx) = mpsc::channel::<Result<Bytes, awc::error::HttpError>>(1);
 

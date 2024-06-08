@@ -53,9 +53,33 @@ pub enum Actions {
     #[arg(long)]
     pack: bool,
 
-    /// Default: If no function is found, redirect rules for "index.x?html?" files are created (e.g. "/" -308-> "/index.html")
+    /// Intercept status codes (e.g. "404:/404.html" or "404:POST:/404.html")
+    #[arg(short, long)]
+    intercept: Vec<String>,
+
+    /// [DEPRECATED: use --disableStaticRouter] Default: If no function is found, redirect rules for "index.x?html?" files are created (e.g. "/" -308-> "/index.html")
     #[arg(long = "disableDefaultIndexHTMLRedirect")]
     disable_assets_default_index_html_redirect: bool,
+
+    /// Disables the auto-router for static-only deployments
+    #[arg(long = "disableStaticRouter")]
+    disable_static_router: bool,
+
+    /// Enables the auto-router for deployments with functions
+    #[arg(long = "enableStaticRouter")]
+    enable_static_router: bool,
+
+    /// Prefer file based HTML routing (e.g. "/index.html" -> "/:index.html", "/about.html" -> "/about:about.html")
+    #[arg(long = "preferFileRouter")]
+    prefer_file_router: bool,
+
+    /// If no functions are found, instead of redirect rules for "index.x?html?" files, puppets are created (e.g. "/" -> "/index.html")
+    #[arg(long = "preferPuppets")]
+    prefer_puppets: bool,
+
+    /// Disable function discovery
+    #[arg(long = "disableFunctionDiscovery")]
+    disable_function_discovery: bool,
   },
   New {
     /// Project location (e.g. "./my-app/")
@@ -86,9 +110,17 @@ pub enum Actions {
     #[arg(short, long)]
     asset: Vec<String>,
 
+    /// [DEPRECATED: use --promote] Domain accociated labels (e.g. "production")
+    #[arg(long)]
+    promotion: Vec<String>,
+
     /// Domain accociated labels (e.g. "production")
     #[arg(short, long)]
-    promotion: Option<Vec<String>>,
+    promote: Vec<String>,
+
+    /// Intercept status codes (e.g. "404:/404.html" or "404:POST:/404.html")
+    #[arg(short, long)]
+    intercept: Vec<String>,
 
     /// Deployment name
     #[arg(short, long)]
@@ -118,9 +150,29 @@ pub enum Actions {
     #[arg(long)]
     pack: bool,
 
-    /// Default: If no function is found, redirect rules for "index.x?html?" files are created (e.g. "/" -308-> "/index.html")
+    /// [DEPRECATED: use --disableStaticRouter] Default: If no function is found, redirect rules for "index.x?html?" files are created (e.g. "/" -308-> "/index.html")
     #[arg(long = "disableDefaultIndexHTMLRedirect")]
     disable_assets_default_index_html_redirect: bool,
+
+    /// Disables the auto-router for static-only deployments
+    #[arg(long = "disableStaticRouter")]
+    disable_static_router: bool,
+
+    /// Enables the auto-router for deployments with functions
+    #[arg(long = "enableStaticRouter")]
+    enable_static_router: bool,
+
+    /// Prefer file based HTML routing (e.g. "/index.html" -> "/:index.html", "/about.html" -> "/about:about.html")
+    #[arg(long = "preferFileRouter")]
+    prefer_file_router: bool,
+
+    /// If no functions are found, instead of redirect rules for "index.x?html?" files, puppets are created (e.g. "/" -> "/index.html")
+    #[arg(long = "preferPuppets")]
+    prefer_puppets: bool,
+
+    /// Disable function discovery
+    #[arg(long = "disableFunctionDiscovery")]
+    disable_function_discovery: bool,
   },
   /// Pack a Next.js or custom application
   Pack {
@@ -152,9 +204,33 @@ pub enum Actions {
     #[arg(long)]
     redirect: Vec<String>,
 
-    /// Default: If no function is found, redirect rules for "index.x?html?" files are created (e.g. "/" -308-> "/index.html")
+    /// Intercept status codes (e.g. "404:/404.html" or "404:POST:/404.html")
+    #[arg(short, long)]
+    intercept: Vec<String>,
+
+    /// [DEPRECATED: use --disableStaticRouter] Default: If no function is found, redirect rules for "index.x?html?" files are created (e.g. "/" -308-> "/index.html")
     #[arg(long = "disableDefaultIndexHTMLRedirect")]
     disable_assets_default_index_html_redirect: bool,
+
+    /// Disables the auto-router for static-only deployments
+    #[arg(long = "disableStaticRouter")]
+    disable_static_router: bool,
+
+    /// Enables the auto-router for deployments with functions
+    #[arg(long = "enableStaticRouter")]
+    enable_static_router: bool,
+
+    /// Prefer file based HTML routing (e.g. "/index.html" -> "/:index.html", "/about.html" -> "/about:about.html")
+    #[arg(long = "preferFileRouter")]
+    prefer_file_router: bool,
+
+    /// If no functions are found, instead of redirect rules for "index.x?html?" files, puppets are created (e.g. "/" -> "/index.html")
+    #[arg(long = "preferPuppets")]
+    prefer_puppets: bool,
+
+    /// Disable function discovery
+    #[arg(long = "disableFunctionDiscovery")]
+    disable_function_discovery: bool,
   },
   Uninstall,
   #[command(subcommand)]
@@ -300,9 +376,21 @@ async fn main() -> ExitCode {
       puppet,
       redirect,
       disable_assets_default_index_html_redirect,
+      enable_static_router,
+      disable_static_router,
       pack,
       address,
+      intercept,
+      prefer_file_router,
+      prefer_puppets,
+      disable_function_discovery,
     } => {
+      if disable_assets_default_index_html_redirect {
+        println!(
+          "`--disableDefaultIndexHTMLRedirect` is deprecated - please use `--disableStaticRouter`"
+        );
+      }
+
       actions::run(
         cwd,
         function,
@@ -313,6 +401,12 @@ async fn main() -> ExitCode {
         disable_assets_default_index_html_redirect,
         pack,
         address,
+        intercept,
+        prefer_file_router,
+        prefer_puppets,
+        enable_static_router,
+        disable_static_router,
+        disable_function_discovery,
       )
       .await
     }
@@ -321,6 +415,7 @@ async fn main() -> ExitCode {
       function,
       asset,
       promotion,
+      promote,
       name,
       description,
       deployment_token,
@@ -329,14 +424,33 @@ async fn main() -> ExitCode {
       puppet,
       redirect,
       disable_assets_default_index_html_redirect,
+      enable_static_router,
+      disable_static_router,
       pack,
+      intercept,
+      prefer_file_router,
+      prefer_puppets,
+      disable_function_discovery,
     } => {
+      if promotion.len() > 1 {
+        println!("`--promotion` is deprecated - please use `--promote`");
+      }
+
+      if disable_assets_default_index_html_redirect {
+        println!(
+          "`--disableDefaultIndexHTMLRedirect` is deprecated - please use `--disableStaticRouter`"
+        );
+      }
+
       actions::deploy(
         cwd,
         deployment_token,
         function,
         asset,
-        promotion,
+        [
+          promote, promotion,
+        ]
+        .concat(),
         name,
         description,
         dry_run,
@@ -345,6 +459,12 @@ async fn main() -> ExitCode {
         redirect,
         disable_assets_default_index_html_redirect,
         pack,
+        intercept,
+        prefer_file_router,
+        prefer_puppets,
+        enable_static_router,
+        disable_static_router,
+        disable_function_discovery,
       )
       .await
     }
@@ -358,7 +478,19 @@ async fn main() -> ExitCode {
       puppet,
       redirect,
       disable_assets_default_index_html_redirect,
+      enable_static_router,
+      disable_static_router,
+      intercept,
+      prefer_file_router,
+      prefer_puppets,
+      disable_function_discovery,
     } => {
+      if disable_assets_default_index_html_redirect {
+        println!(
+          "`--disableDefaultIndexHTMLRedirect` is deprecated - please use `--disableStaticRouter`"
+        );
+      }
+
       actions::pack(
         cwd,
         function,
@@ -368,6 +500,12 @@ async fn main() -> ExitCode {
         puppet,
         redirect,
         disable_assets_default_index_html_redirect,
+        intercept,
+        prefer_file_router,
+        prefer_puppets,
+        enable_static_router,
+        disable_static_router,
+        disable_function_discovery,
       )
       .await
     }
