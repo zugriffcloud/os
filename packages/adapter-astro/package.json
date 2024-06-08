@@ -40,6 +40,6 @@
     "astro": "^4"
   },
   "dependencies": {
-    "esbuild": "^0.21.3"
+    "esbuild": "^0.21.4"
   }
 }

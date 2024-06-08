@@ -36,7 +36,7 @@
   "dependencies": {
     "octokit": "^4.0.2",
     "semver": "^7.6.2",
-    "tar": "^7.1.0",
+    "tar": "^7.2.0",
     "tempy": "^3.1.0",
     "yauzl": "^3.1.3"
   },
