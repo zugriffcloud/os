@@ -134,7 +134,7 @@ pub async fn install(arg: &Args) {
       };
 
       let npm_url = format!(
-        "https://registry.npmjs.org/@esbuild/{}/-/{}-0.21.3.tgz",
+        "https://registry.npmjs.org/@esbuild/{}/-/{}-0.21.4.tgz",
         package, package
       );
 
