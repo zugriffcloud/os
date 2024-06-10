@@ -18,6 +18,20 @@ export default function createIntegration(
     disableAssetsDefaultIndexHTMLRedirect?: boolean;
     puppets?: Record<string, string>;
     redirects?: Array<{ path: string; location: string; status: number }>;
+    interceptors?: Array<{
+      status: number;
+      path: string;
+      method:
+        | 'GET'
+        | 'HEAD'
+        | 'POST'
+        | 'PUT'
+        | 'DELETE'
+        | 'CONNECT'
+        | 'OPTIONS'
+        | 'TRACE'
+        | 'PATCH';
+    }>;
   } = {}
 ): AstroIntegration {
   const SERVER_BUILD_FOLDER = '/.temp/';
@@ -218,6 +232,14 @@ export default function createIntegration(
               puppets,
               redirects,
               assets,
+              interceptors: assets.includes('/404.html')
+                ? [
+                    { status: 404, path: '/404.html', method: 'GET' },
+                    ...(config.interceptors || []),
+                  ]
+                : config.interceptors
+                  ? config.interceptors
+                  : null,
             })
           );
 
@@ -251,6 +273,14 @@ export default function createIntegration(
               puppets: {},
               redirects,
               assets,
+              interceptors: assets.includes('/404.html')
+                ? [
+                    { status: 404, path: '/404.html', method: 'GET' },
+                    ...(config.interceptors || []),
+                  ]
+                : config.interceptors
+                  ? config.interceptors
+                  : null,
             })
           );
 
