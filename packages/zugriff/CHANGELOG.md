@@ -1,5 +1,11 @@
 # zugriff
 
+## 1.0.5
+
+### Patch Changes
+
+- 4d73f75: bump dependencies
+
 ## 1.0.4
 
 ### Patch Changes
