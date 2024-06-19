@@ -15,8 +15,8 @@ export class Mailman {
   constructor(
     config: string | MailmanProxyConfiguration | MailmanConfiguration
   ) {
-    if (config instanceof String && typeof config == 'string') {
-      this.#token = config;
+    if (config instanceof String || typeof config == 'string') {
+      this.#token = config.toString();
       return;
     } else if (typeof config == 'object' && 'token' in config) {
       this.#token = config.token;

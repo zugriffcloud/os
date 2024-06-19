@@ -19,8 +19,8 @@ export class Redis {
   #client: import('ioredis').Redis;
 
   constructor(config: string | RedisProxyConfiguration | RedisConfiguration) {
-    if (config instanceof String && typeof config == 'string') {
-      this.#token = config;
+    if (config instanceof String || typeof config == 'string') {
+      this.#token = config.toString();
       return;
     } else if (typeof config == 'object' && 'token' in config) {
       this.#proxy = config.proxy ?? this.#proxy;

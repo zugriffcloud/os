@@ -28,8 +28,8 @@ export class Postgres {
   constructor(
     config: string | PostgresProxyConfiguration | PostgresConfiguration
   ) {
-    if (config instanceof String && typeof config == 'string') {
-      this.#token = config;
+    if (config instanceof String || typeof config == 'string') {
+      this.#token = config.toString();
       return;
     } else if (typeof config == 'object' && 'host' in config) {
       this.#options = config;
