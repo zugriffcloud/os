@@ -1,4 +1,5 @@
 use awc::{
+  http::StatusCode,
   ws::{self, Frame},
   Client,
 };
@@ -228,6 +229,11 @@ pub async fn deploy(
     }
   };
   debug!("Uploaded application with status {}", response.status());
+
+  if response.status() == StatusCode::UNAUTHORIZED {
+    println!("Unauthorised.");
+    return ExitCode::FAILURE;
+  }
 
   let body: deploy::Result = match response.json().await {
     Ok(body) => body,
