@@ -1,5 +1,11 @@
 # zugriff
 
+## 1.0.6
+
+### Patch Changes
+
+- 8f37c04: Fix arch selection
+
 ## 1.0.5
 
 ### Patch Changes
