@@ -27,18 +27,18 @@ function unsupported() {
 
 let binaryLookup = {
   darwin: {
-    arm: 'darwin-aarch64.tar.gz',
+    arm64: 'darwin-aarch64.tar.gz',
     x64: 'darwin-x86_64.tar.gz',
   },
   win32: {
-    arm: 'windows-aarch64.zip',
+    arm64: 'windows-aarch64.zip',
     x64: 'windows-x86_64.zip',
   },
   freebsd: {
     x64: 'freebsd-x86_64.tar.gz',
   },
   linux: {
-    arm: 'linux-aarch64-musl.tar.gz',
+    arm64: 'linux-aarch64-musl.tar.gz',
     x64: 'linux-x86_64-musl.tar.gz',
   },
 };
