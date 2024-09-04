@@ -27,7 +27,7 @@ once_cell.workspace = true
 regex.workspace = true
 hotwatch.workspace = true
 zip.workspace = true
-xz2.workspace = { workspace = true, features = "static" }
+xz2 = { version = "= 0.1.7", features = ["static"] }
 serde_json.workspace = true
 serde.workspace = true
 dotenvy.workspace = true
