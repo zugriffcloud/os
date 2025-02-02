@@ -1,5 +1,11 @@
 # @zugriff/preset-nitro
 
+## 1.0.3
+
+### Patch Changes
+
+- f7b99ca: support new configuration options
+
 ## 1.0.2
 
 ### Patch Changes
