@@ -1,5 +1,11 @@
 # @zugriff/adapter-astro
 
+## 1.0.5
+
+### Patch Changes
+
+- f7b99ca: support new configuration options
+
 ## 1.0.4
 
 ### Patch Changes
