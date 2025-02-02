@@ -5,7 +5,7 @@ title: Runtime APIs
 To provide you with the best experience possible, we strive to adhere to the [WinterCG](https://wintercg.org) requirements.
 
 :::caution
-While we do not support all NodeJS APIs, most npm packages should run on zugriff.
+While we do not support all NodeJS APIs, many npm packages should run on zugriff.
 :::
 
 :::tip[Did you know?]

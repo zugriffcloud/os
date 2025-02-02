@@ -27,8 +27,10 @@ use std::os::unix::fs::MetadataExt as _;
 
 #[cfg(target_family = "windows")]
 use std::os::windows::fs::MetadataExt as _;
-
-use crate::utils::configuration::{ConfigurationFile, DynamicRoute, Meta, Technology};
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
+use sha3::{Digest, Sha3_384};
+use crate::utils::configuration::{Asset, AuthCredentials, ConfigurationFile, DynamicRoute, Guard, Meta, Technology};
 
 use super::configuration::{Interceptor, Method, Redirect};
 use super::dependencies::ESBUILD_ZUGRIFF;
@@ -50,6 +52,8 @@ pub async fn shadow(
   enable_static_router: bool,
   disable_static_router: bool,
   disable_function_discovery: bool,
+  guards: Vec<String>,
+  asset_cache_control: Vec<String>,
 ) -> anyhow::Result<PathBuf> {
   let current = env::current_dir()?;
   let base = match &cwd {
@@ -142,12 +146,15 @@ pub async fn shadow(
 
       copy(file, assets.join(relative))?;
 
-      config.assets.push(format!("/{}", relative));
+      config.assets.push(Asset::Simple(format!("/{}", relative)));
     }
 
     attach_assets(&base.into(), &assets, assets_flag, &mut config).ok();
 
+    attach_asset_cache_control(&mut config, asset_cache_control);
+
     attach_middleware(
+      &mut config,
       interceptors_flag,
       puppets_flag,
       redirects_flag,
@@ -155,7 +162,7 @@ pub async fn shadow(
       prefer_puppets,
       enable_static_router,
       disable_static_router || disable_assets_default_index_html_redirect,
-      &mut config,
+      guards,
     );
 
     File::create(dot_zugriff.join("config.json"))?.write_all(&to_vec(&config)?)?;
@@ -204,7 +211,10 @@ pub async fn shadow(
     &mut config,
   )?;
 
+  attach_asset_cache_control(&mut config, asset_cache_control);
+
   attach_middleware(
+    &mut config,
     interceptors_flag,
     puppets_flag,
     redirects_flag,
@@ -212,7 +222,7 @@ pub async fn shadow(
     prefer_puppets,
     enable_static_router,
     disable_static_router || disable_assets_default_index_html_redirect || function.is_some(),
-    &mut config,
+    guards,
   );
 
   let package_json = base.join("package.json");
@@ -329,8 +339,8 @@ pub fn report(compressed: &mut File) {
   }
 
   let manifest = match manifest {
-    Some(manifest) => match serde_json::from_slice(&manifest) {
-      Ok::<ConfigurationFile, _>(manifest) => manifest,
+    Some(manifest) => match serde_json::from_slice::<ConfigurationFile>(&manifest) {
+      Ok(manifest) => manifest,
       Err(_) => return pretty::log(Some(Status::WARNING), "Found invalid configuration file"),
     },
     None => return pretty::log(Some(Status::WARNING), "Unable to locate configuration file"),
@@ -342,7 +352,7 @@ pub fn report(compressed: &mut File) {
 
   println!("\n{}", String::from("Middleware").bold());
   let mut has_middleware = false;
-  for (mut from, to) in manifest.puppets {
+  for (mut from, to) in manifest.preprocessors.puppets {
     has_middleware = true;
     if from == "" {
       from.push_str("/");
@@ -350,7 +360,7 @@ pub fn report(compressed: &mut File) {
 
     println!("{} → {} (Puppet)", from, to);
   }
-  for mut redirect in manifest.redirects {
+  for mut redirect in manifest.preprocessors.redirects {
     has_middleware = true;
     if redirect.path == "" {
       redirect.path.push_str("/");
@@ -362,12 +372,24 @@ pub fn report(compressed: &mut File) {
     );
   }
 
-  if let Some(interceptors) = manifest.interceptors {
-    for interceptor in interceptors {
-      has_middleware = true;
+  for interceptor in manifest.postprocessors.interceptors {
+    has_middleware = true;
+    println!(
+      "→ {} → {} → {} (Interceptor)",
+      interceptor.method, interceptor.status, interceptor.path
+    );
+  }
+
+  for guard in manifest.preprocessors.guards {
+    has_middleware = true;
+    for pattern in guard.patterns {
       println!(
-        "→ {} → {} → {} (Interceptor)",
-        interceptor.method, interceptor.status, interceptor.path
+        "Basic Auth{} → {} (Guard)",
+        match guard.credentials.password.is_some() {
+          true => "",
+          false => " (Passwordless)"
+        },
+        pattern
       );
     }
   }
@@ -395,7 +417,7 @@ fn attach_assets(
       }
 
       copy(file, destination)?;
-      config.assets.push(relative);
+      config.assets.push(Asset::Simple(relative));
     }
   }
 
@@ -403,9 +425,9 @@ fn attach_assets(
     .assets
     .clone()
     .into_iter()
-    .collect::<HashSet<String>>()
+    .collect::<HashSet<Asset>>()
     .into_iter()
-    .collect::<Vec<String>>();
+    .collect::<Vec<Asset>>();
 
   Ok(())
 }
@@ -534,7 +556,51 @@ async fn bundle_function(
   Ok(())
 }
 
+pub fn attach_asset_cache_control(
+  config: &mut ConfigurationFile,
+  asset_cache_control: Vec<String>
+) {
+  for cc in asset_cache_control {
+    match split_args_basic(&cc) {
+      Some((value, path)) => {
+        let mut remove = None;
+        for (index, asset) in config.assets.iter_mut().enumerate() {
+          match asset {
+            Asset::Simple(_) => {
+              remove = Some(index);
+              break;
+            },
+            Asset::Advanced { cache_control, .. } => {
+              *cache_control = value.to_string();
+              break;
+            }
+          }
+        }
+
+        match remove {
+          Some(index) => {
+            config.assets.remove(index);
+            config.assets.push(Asset::Advanced { path, cache_control: value });
+          }
+          None => pretty::log(
+            Some(pretty::Status::WARNING),
+            &format!(
+              "Unable to locate asset \"{}\" to customise Cache-Control header",
+              path
+            ),
+          )
+        }
+      },
+      None => pretty::log(
+        Some(pretty::Status::WARNING),
+        &format!("Unable to attach Cache-Control header \"{}\"", cc),
+      )
+    }
+  }
+}
+
 pub fn attach_middleware(
+  config: &mut ConfigurationFile,
   interceptors: Vec<String>,
   puppet: Vec<String>,
   redirect: Vec<String>,
@@ -542,13 +608,18 @@ pub fn attach_middleware(
   prefer_puppets: bool,
   enable_static_router: bool,
   disable_static_router: bool,
-  config: &mut ConfigurationFile,
+  guards: Vec<String>,
 ) {
   let mut index_index = Vec::new();
 
   if !disable_static_router || enable_static_router {
     if prefer_file_router {
       for asset in &config.assets {
+        let asset = match asset {
+          Asset::Simple(path) => path,
+          Asset::Advanced { path, .. } => path,
+        };
+
         if asset.ends_with(".html") || asset.ends_with(".htm") || asset.ends_with(".xhtml") {
           let mut from = asset
             .trim_end_matches(".html")
@@ -569,6 +640,11 @@ pub fn attach_middleware(
       }
     } else {
       for asset in &config.assets {
+        let asset = match asset {
+          Asset::Simple(path) => path,
+          Asset::Advanced { path, .. } => path,
+        };
+
         if asset.ends_with("/index.html")
           || asset.ends_with("/index.htm")
           || asset.ends_with("/index.xhtml")
@@ -590,11 +666,11 @@ pub fn attach_middleware(
 
     if prefer_puppets {
       for (from, to) in &index_index {
-        config.puppets.insert(from.to_string(), to.to_string());
+        config.preprocessors.puppets.insert(from.to_string(), to.to_string());
       }
     } else {
       for (from, to) in index_index {
-        config.redirects.push(Redirect {
+        config.preprocessors.redirects.push(Redirect {
           status: 308,
           path: from.into(),
           location: to.into(),
@@ -606,7 +682,7 @@ pub fn attach_middleware(
   for puppet in puppet {
     match split_args(&puppet) {
       Some((from, to)) => {
-        config.puppets.insert(from.to_owned(), to.to_owned());
+        config.preprocessors.puppets.insert(from.to_owned(), to.to_owned());
       }
       None => pretty::log(
         Some(pretty::Status::WARNING),
@@ -627,11 +703,11 @@ pub fn attach_middleware(
             location: to,
           };
 
-          if config.redirects.contains(&redirect) {
+          if config.preprocessors.redirects.contains(&redirect) {
             continue;
           }
 
-          config.redirects.push(redirect)
+          config.preprocessors.redirects.push(redirect)
         }
         None => {
           let redirect = Redirect {
@@ -640,11 +716,11 @@ pub fn attach_middleware(
             location: to,
           };
 
-          if config.redirects.contains(&redirect) {
+          if config.preprocessors.redirects.contains(&redirect) {
             continue;
           }
 
-          config.redirects.push(redirect)
+          config.preprocessors.redirects.push(redirect)
         }
       },
       None => pretty::log(
@@ -702,7 +778,12 @@ pub fn attach_middleware(
             }
           }
 
-          if config.assets.contains(&path) {
+          let is_asset_included = config.assets.iter().find_map(|asset| match asset {
+            Asset::Simple(asset_path) => Some(asset_path == &path),
+            Asset::Advanced { path: asset_path, .. } => Some(asset_path == &path),
+          }).is_some();
+
+          if is_asset_included {
             for method in methods {
               _interceptors.insert(Interceptor {
                 method,
@@ -736,8 +817,61 @@ pub fn attach_middleware(
   }
 
   if _interceptors.len() > 0 {
-    config.interceptors = Some(_interceptors.into_iter().collect::<Vec<_>>());
+    config.postprocessors.interceptors = _interceptors.into_iter().collect::<Vec<_>>();
   }
+
+  let mut _guards = Vec::new();
+
+  for guard in guards {
+    let mut tmpl = Guard {
+      credentials: Default::default(),
+      scheme: Default::default(),
+      patterns: vec![],
+    };
+
+    fn hash_credentials(username: String, password: String) -> AuthCredentials {
+      let username = Sha3_384::digest(username.as_bytes());
+      let username = BASE64_STANDARD.encode(&username);
+
+      let password = match password.as_str() {
+        "" => None,
+        password => {
+          let password = Sha3_384::digest(password.as_bytes());
+          let password = BASE64_STANDARD.encode(&password);
+
+          Some(password)
+        },
+      };
+
+      AuthCredentials { username, password }
+    }
+
+    match split_args_basic(&guard) {
+      Some((username, password)) => match split_args_basic(&password) {
+        Some((password, mut path)) => {
+          tmpl.credentials = hash_credentials(username, password);
+
+          if !path.ends_with('*') && !path.ends_with('/') {
+            path.push('/');
+          }
+
+          tmpl.patterns.push(path);
+        },
+        None => {
+          tmpl.credentials = hash_credentials(username, password);
+          tmpl.patterns.push("*".to_string());
+        }
+      },
+      None => pretty::log(
+        Some(pretty::Status::WARNING),
+        &format!("Unable to process guard \"{}\"", guard),
+      ),
+    };
+
+    _guards.push(tmpl);
+  }
+
+  config.preprocessors.guards = _guards;
 }
 
 fn split_args(input: &str) -> Option<(String, String)> {
@@ -758,6 +892,18 @@ fn split_args(input: &str) -> Option<(String, String)> {
       };
 
       Some((from.to_owned(), to.to_owned()))
+    }
+    None => None,
+  }
+}
+
+fn split_args_basic(input: &str) -> Option<(String, String)> {
+  match input.find(":") {
+    Some(i) => {
+      let prefix = &input[..i];
+      let suffix = &input[i + 1..];
+
+      Some((prefix.to_owned(), suffix.to_owned()))
     }
     None => None,
   }

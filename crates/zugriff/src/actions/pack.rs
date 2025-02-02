@@ -18,6 +18,8 @@ pub async fn pack(
   enable_static_router: bool,
   disable_static_router: bool,
   disable_function_discovery: bool,
+  guards: Vec<String>,
+  asset_cache_control: Vec<String>,
 ) -> ExitCode {
   let dot_zugriff = shadow(
     external,
@@ -33,6 +35,8 @@ pub async fn pack(
     enable_static_router,
     disable_static_router,
     disable_function_discovery,
+    guards,
+    asset_cache_control
   )
   .await
   .unwrap();

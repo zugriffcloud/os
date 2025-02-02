@@ -3,7 +3,7 @@ title: About
 description: What zugriff is. What zugriff can do. What zugriff cannot do.
 ---
 
-With zugriff, you can deploy your web applications and APIs on the edge, close to your users. All without compromising on
+With zugriff, you can deploy your web applications and APIs at the Edge, close to your users. All without compromising on
 GDPR, developer experience and performance.
 
 Supporting both dynamic and static content, our internal router will decide whether we return a static or dynamic response.

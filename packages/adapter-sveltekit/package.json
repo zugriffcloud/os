@@ -37,10 +37,11 @@
   ],
   "author": "Luca Goslar <luca@zugriff.eu>",
   "license": "MIT",
-  "dependencies": {
-    "esbuild": "^0.21.4"
-  },
   "peerDependencies": {
     "@sveltejs/kit": "^2"
+  },
+  "dependencies": {
+    "esbuild": "^0.21.4",
+    "jssha": "^3.3.1"
   }
 }

@@ -13,7 +13,6 @@ record to the DNS configuration of your domain.
 | :------- | :---------------- |
 | \*       | dns.zugriff.eu    |
 | Germany  | de.dns.zugriff.eu |
-| Finland  | fi.dns.zugriff.eu |
 
 Find information on how to set up a `CNAME` record below.
 
@@ -27,10 +26,9 @@ Find information on how to set up a `CNAME` record below.
 You may also point your domain to an IPv4 (A) or IPv6 (AAAA) address.  
 **We might change addresses over time, and you will not profit from Global Server Load Balancing (GSLB).**
 
-| Location          | IPv4           | IPv6                  |
-| :---------------- | :------------- | :-------------------- |
-| Germany, Nürnberg | 116.203.1.254  | 2a01:4f8:1c0c:b00b::1 |
-| Finland, Helsinki | 65.109.243.233 | 2a01:4f9:c01f:96::1   |
+| Location          | IPv4           | IPv6                 |
+| :---------------- | :------------- | :------------------- |
+| Germany, Nürnberg | 157.90.133.120 | 2a01:4f8:252:28c7::2 |
 
 :::
 

@@ -3,19 +3,59 @@ import * as path from 'node:path';
 import * as url from 'node:url';
 import * as esbuild from 'esbuild';
 import type { Builder } from '@sveltejs/kit';
+import SHA3 from 'jssha';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 export default function (
   options: {
-    disableAutoPuppets?: boolean;
-    puppets?: Record<string, string>;
-    redirects?: Array<{ path: string; location: string; status: number }>;
-  } = {}
+    build: {
+      disableAutoPuppets?: boolean;
+      preprocessors?: {
+        puppets?: Record<string, string>;
+        redirects?: Array<{ path: string; location: string; status: number }>;
+        guards?: Array<{
+          credentials: { username: string; password: string | null };
+          scheme: 'basic';
+          patterns: Array<string>;
+        }>;
+      };
+      postprocessors?: {
+        interceptors?: Array<{
+          status: number;
+          path: string;
+          method:
+            | 'GET'
+            | 'HEAD'
+            | 'POST'
+            | 'PUT'
+            | 'DELETE'
+            | 'CONNECT'
+            | 'OPTIONS'
+            | 'TRACE'
+            | 'PATCH';
+        }>;
+      };
+    };
+  } = { build: {} }
 ) {
   return {
     name: '@zugriff/adapter-sveltekit',
     async adapt(builder: Builder) {
+      const guards =
+        options.build.preprocessors?.guards?.map((guard) => {
+          guard.credentials.username = new SHA3('SHA3-384', 'TEXT')
+            .update(guard.credentials.username)
+            .getHash('B64');
+          if (guard.credentials.password) {
+            guard.credentials.password = new SHA3('SHA3-384', 'TEXT')
+              .update(guard.credentials.password)
+              .getHash('B64');
+          }
+
+          return guard;
+        }) || [];
+
       const zugriff_content = '.zugriff';
       const zugriff_tmp_content = builder.getBuildDirectory('.zugriff_tmp');
 
@@ -43,16 +83,18 @@ export default function (
 
       const puppets = {};
 
-      let redirects = (options.redirects || []).map((redirect) => {
-        let path = redirect.path.replace(/\/$/, '');
+      let redirects = (options.build.preprocessors?.redirects || []).map(
+        (redirect) => {
+          let path = redirect.path.replace(/\/$/, '');
 
-        return {
-          ...redirect,
-          path: path == '' ? '/' : path,
-        };
-      });
+          return {
+            ...redirect,
+            path: path == '' ? '/' : path,
+          };
+        }
+      );
 
-      if (!options.disableAutoPuppets) {
+      if (!options.build.disableAutoPuppets) {
         for (let route of builder.routes) {
           if (route.prerender) {
             let id = route.id.replace(/\/$/, '');
@@ -64,7 +106,9 @@ export default function (
         }
       }
 
-      for (let [path, to] of Object.entries(options.puppets || {})) {
+      for (let [path, to] of Object.entries(
+        options.build.preprocessors?.puppets || {}
+      )) {
         puppets[path] = to;
       }
 
@@ -94,7 +138,13 @@ export default function (
       await esbuild.build({
         entryPoints: [path.join(zugriff_tmp_content, 'handler.js')],
         outfile: path.join(zugriff_content, 'functions', 'index.js'),
-        external: ['postgres', 'ioredis', 'nodemailer', 'dotenv'],
+        external: [
+          'postgres',
+          'ioredis',
+          'nodemailer',
+          'dotenv',
+          'node:async_hooks',
+        ],
         target: 'esnext',
         bundle: true,
         minify: true,
@@ -112,9 +162,15 @@ export default function (
             technology: 'SvelteKit',
           },
           functions: [{ path: '/index.js', pattern: '*' }],
-          puppets,
-          redirects,
           assets,
+          preprocessors: {
+            puppets,
+            redirects,
+            guards,
+          },
+          postprocessors: {
+            interceptors: options.build.postprocessors?.interceptors || [],
+          },
         })
       );
     },

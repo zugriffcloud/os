@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 
 import * as esbuild from 'esbuild';
 import type { Preset } from '@remix-run/dev';
+import SHA3 from 'jssha';
 import { discoverFiles, doesFileExist, staticRouter } from '$lib/util';
 
 let entryServer: string;
@@ -12,9 +13,36 @@ const __filename = path.resolve(import.meta.filename);
 
 export default function zugriff(
   options: {
-    disableDefaultIndexHTMLRedirect?: boolean;
     disableEntryServerReplacement?: boolean;
     disableEntryServerCreation?: boolean;
+    build?: {
+      disableDefaultIndexHTMLRedirect?: boolean;
+      preprocessors?: {
+        puppets?: Record<string, string>;
+        redirects?: Array<{ path: string; location: string; status: number }>;
+        guards?: Array<{
+          credentials: { username: string; password: string | null };
+          scheme: 'basic';
+          patterns: Array<string>;
+        }>;
+      };
+      postprocessors?: {
+        interceptors?: Array<{
+          status: number;
+          path: string;
+          method:
+            | 'GET'
+            | 'HEAD'
+            | 'POST'
+            | 'PUT'
+            | 'DELETE'
+            | 'CONNECT'
+            | 'OPTIONS'
+            | 'TRACE'
+            | 'PATCH';
+        }>;
+      };
+    };
   } = {}
 ): Preset {
   return {
@@ -89,6 +117,20 @@ export default function zugriff(
       buildDirectory: path.join('.zugriff', 'tmp'),
       manifest: true,
       buildEnd: (config) => {
+        let guards =
+          options.build?.preprocessors?.guards?.map((guard) => {
+            guard.credentials.username = new SHA3('SHA3-384', 'TEXT')
+              .update(guard.credentials.username)
+              .getHash('B64');
+            if (guard.credentials.password) {
+              guard.credentials.password = new SHA3('SHA3-384', 'TEXT')
+                .update(guard.credentials.password)
+                .getHash('B64');
+            }
+
+            return guard;
+          }) || [];
+
         fs.renameSync(
           path.join('.zugriff', 'tmp', 'client'),
           path.join('.zugriff', 'assets')
@@ -127,9 +169,15 @@ export default function zugriff(
                 technology: 'Remix',
               },
               functions: [{ path: '/index.js', pattern: '*' }],
-              puppets: {},
-              redirects: [],
               assets: discoverFiles(path.join('.zugriff', 'assets')),
+              preprocessors: {
+                puppets: options.build?.preprocessors?.puppets || {},
+                redirects: options.build?.preprocessors?.redirects || [],
+                guards,
+              },
+              postprocessors: {
+                interceptors: options.build?.postprocessors?.interceptors || [],
+              },
             })
           );
         } else {
@@ -148,14 +196,22 @@ export default function zugriff(
                 technology: 'Remix',
               },
               functions: [],
-              puppets: {},
-              redirects:
-                options &&
-                options.disableDefaultIndexHTMLRedirect &&
-                options.disableDefaultIndexHTMLRedirect == true
-                  ? []
-                  : staticRouter(assets),
               assets,
+              preprocessors: {
+                puppets: options.build?.preprocessors?.puppets || {},
+                redirects: (
+                  options.build?.preprocessors?.redirects || []
+                ).concat(
+                  options &&
+                    options.build?.disableDefaultIndexHTMLRedirect == true
+                    ? []
+                    : staticRouter(assets)
+                ),
+                guards,
+              },
+              postprocessors: {
+                interceptors: options.build?.postprocessors?.interceptors || [],
+              },
             })
           );
         }

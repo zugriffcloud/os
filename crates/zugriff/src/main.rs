@@ -20,12 +20,12 @@ extern crate log;
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum Actions {
-  Run {
+  Preview {
     /// Change current working directory (e.g. "./my-app/")
     #[arg(long)]
     cwd: Option<String>,
 
-    /// Function entry file (e.g. ".src/index.js")
+    /// Function entry file (e.g. "./src/index.js")
     #[arg(short, long)]
     function: Option<String>,
 
@@ -80,6 +80,14 @@ pub enum Actions {
     /// Disable function discovery
     #[arg(long = "disableFunctionDiscovery")]
     disable_function_discovery: bool,
+
+    /// Protect paths with basic access authentication (e.g. "user:pass" or "user:pass:/secrets.txt")
+    #[arg(short, long)]
+    guard: Vec<String>,
+
+    /// Apply custom Cache-Control headers to assets ("no-cache", "no-store" and "max-age=n" are supported, e.g. "no-cache:/main-menu.pdf")
+    #[arg(long = "assetCacheControl")]
+    asset_cache_control: Vec<String>,
   },
   New {
     /// Project location (e.g. "./my-app/")
@@ -173,6 +181,14 @@ pub enum Actions {
     /// Disable function discovery
     #[arg(long = "disableFunctionDiscovery")]
     disable_function_discovery: bool,
+
+    /// Protect paths with basic access authentication (e.g. "user:pass" or "user:pass:/secrets.txt")
+    #[arg(short, long)]
+    guard: Vec<String>,
+
+    /// Apply custom Cache-Control headers to assets ("no-cache", "no-store" and "max-age=n" are supported, e.g. "no-cache:/main-menu.pdf")
+    #[arg(long = "assetCacheControl")]
+    asset_cache_control: Vec<String>,
   },
   /// Pack a Next.js or custom application
   Pack {
@@ -231,6 +247,14 @@ pub enum Actions {
     /// Disable function discovery
     #[arg(long = "disableFunctionDiscovery")]
     disable_function_discovery: bool,
+
+    /// Protect paths with basic access authentication (e.g. "user:pass" or "user:pass:/secrets.txt")
+    #[arg(short, long)]
+    guard: Vec<String>,
+
+    /// Apply custom Cache-Control headers to assets ("no-cache", "no-store" and "max-age=n" are supported, e.g. "no-cache:/main-menu.pdf")
+    #[arg(long = "assetCacheControl")]
+    asset_cache_control: Vec<String>,
   },
   Uninstall,
   #[command(subcommand)]
@@ -368,7 +392,7 @@ async fn main() -> ExitCode {
   match args.action {
     Actions::New { output, typescript } => actions::new(Some(output), typescript, args.y).await,
     Actions::Init { typescript } => actions::new(None, typescript, args.y).await,
-    Actions::Run {
+    Actions::Preview {
       cwd,
       function,
       asset,
@@ -384,6 +408,8 @@ async fn main() -> ExitCode {
       prefer_file_router,
       prefer_puppets,
       disable_function_discovery,
+      guard,
+      asset_cache_control
     } => {
       if disable_assets_default_index_html_redirect {
         println!(
@@ -407,6 +433,8 @@ async fn main() -> ExitCode {
         enable_static_router,
         disable_static_router,
         disable_function_discovery,
+        guard,
+        asset_cache_control
       )
       .await
     }
@@ -431,6 +459,8 @@ async fn main() -> ExitCode {
       prefer_file_router,
       prefer_puppets,
       disable_function_discovery,
+      guard,
+      asset_cache_control,
     } => {
       if promotion.len() > 1 {
         println!("`--promotion` is deprecated - please use `--promote`");
@@ -465,6 +495,8 @@ async fn main() -> ExitCode {
         enable_static_router,
         disable_static_router,
         disable_function_discovery,
+        guard,
+        asset_cache_control,
       )
       .await
     }
@@ -484,6 +516,8 @@ async fn main() -> ExitCode {
       prefer_file_router,
       prefer_puppets,
       disable_function_discovery,
+      guard,
+      asset_cache_control
     } => {
       if disable_assets_default_index_html_redirect {
         println!(
@@ -506,6 +540,8 @@ async fn main() -> ExitCode {
         enable_static_router,
         disable_static_router,
         disable_function_discovery,
+        guard,
+        asset_cache_control
       )
       .await
     }

@@ -37,6 +37,6 @@
   "author": "Luca Goslar <luca@zugriff.eu>",
   "license": "MIT",
   "dependencies": {
-    "nitropack": "^2.9.6"
+    "nitropack": "^2.10.4"
   }
 }

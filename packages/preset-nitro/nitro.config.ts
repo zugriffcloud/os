@@ -49,11 +49,17 @@ export default <NitroPreset>{
             technology,
           },
           functions: [{ path: '/index.js', pattern: '*' }],
-          puppets: {},
-          redirects: [],
           assets: discoverFiles(path.join('.zugriff', 'assets')).map((asset) =>
             asset.startsWith('/') ? asset : '/' + asset
           ),
+          preprocessors: {
+            puppets: {},
+            redirects: [],
+            guards: [],
+          },
+          postprocessors: {
+            interceptors: [],
+          },
         })
       );
     },

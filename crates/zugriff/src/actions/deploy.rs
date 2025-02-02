@@ -5,12 +5,17 @@ use awc::{
 };
 use bytes::{Bytes, BytesMut};
 use futures::{channel::mpsc, SinkExt, StreamExt};
-use std::{fs::remove_dir_all, process::ExitCode};
+use garde::Validate;
+use serde::Deserialize;
+use serde_envfile::from_file;
+use std::{fs::remove_dir_all, process::ExitCode, time::Duration};
 use std::{fs::OpenOptions, io::Seek};
 use std::{io::Write, path::Path};
 use tokio::io::AsyncReadExt;
 use url::Url;
 
+use crate::utils::configuration::Legacy1ConfigurationFile;
+use crate::utils::pack::attach_asset_cache_control;
 use crate::{
   utils::{
     configuration::ConfigurationFile,
@@ -41,6 +46,8 @@ pub async fn deploy(
   enable_static_router: bool,
   disable_static_router: bool,
   disable_function_discovery: bool,
+  guards: Vec<String>,
+  asset_cache_control: Vec<String>,
 ) -> ExitCode {
   let deployment_token = match deployment_token {
     Some(deployment_token) => deployment_token,
@@ -80,14 +87,20 @@ pub async fn deploy(
 
     let mut config = match serde_json::from_str::<ConfigurationFile>(&config) {
       Ok(config) => config,
-      Err(err) => {
-        println!("Found invalid configuration file");
-        debug!("{}", err);
-        return ExitCode::FAILURE;
-      }
+      Err(err) => match serde_json::from_str::<Legacy1ConfigurationFile>(&config) {
+        Ok(config) => ConfigurationFile::from(config),
+        Err(_) => {
+          println!("Found invalid configuration file");
+          debug!("{}", err);
+          return ExitCode::FAILURE;
+        }
+      },
     };
 
+    attach_asset_cache_control(&mut config, asset_cache_control);
+
     attach_middleware(
+      &mut config,
       interceptors,
       puppet,
       redirect,
@@ -95,8 +108,14 @@ pub async fn deploy(
       prefer_puppets,
       enable_static_router,
       true,
-      &mut config,
+      guards,
     );
+
+    if let Err(error) = config.validate() {
+      eprintln!("Found invalid configuration");
+      eprintln!("{}", error);
+      return ExitCode::FAILURE;
+    }
 
     build_config.set_len(0).unwrap();
     build_config.rewind().unwrap();
@@ -137,6 +156,8 @@ pub async fn deploy(
       enable_static_router,
       disable_static_router,
       disable_function_discovery,
+      guards,
+      asset_cache_control,
     )
     .await
     {
@@ -148,6 +169,14 @@ pub async fn deploy(
         panic!("{err}")
       }
     };
+
+    let config = shadow.join("config.json");
+    let config = from_file::<ConfigurationFile>(&config).unwrap();
+    if let Err(error) = config.validate() {
+      eprintln!("Found invalid configuration");
+      eprintln!("{}", error);
+      return ExitCode::FAILURE;
+    }
 
     packed = compress(shadow).unwrap();
   }
@@ -164,6 +193,7 @@ pub async fn deploy(
   }
 
   let client = Client::builder()
+    .timeout(Duration::from_secs(60 * 15))
     .bearer_auth(&deployment_token)
     .max_redirects(10);
 
@@ -208,9 +238,12 @@ pub async fn deploy(
 
       let buf_len = buf.len();
 
+      trace!("Sending chunk of size {}", buf_len);
       tx.send(Ok(buf.into())).await.unwrap();
+      trace!("Chunk sent");
 
       if buf_len < capacity {
+        trace!("Sent last chunk");
         break;
       }
     }
@@ -232,6 +265,42 @@ pub async fn deploy(
 
   if response.status() == StatusCode::UNAUTHORIZED {
     println!("Unauthorised.");
+    return ExitCode::FAILURE;
+  }
+
+  if response.status() == StatusCode::FORBIDDEN {
+    #[derive(Deserialize)]
+    struct Info {
+      account: bool,
+      organisation: bool,
+      project: bool,
+    }
+
+    let info = response.json::<Info>().await.unwrap();
+
+    if info.account {
+      eprintln!("Account token deployment created with suspended.");
+    }
+
+    if info.organisation {
+      eprintln!("Organisation suspended.");
+    }
+
+    if info.project {
+      eprintln!("Project suspended.");
+    }
+
+    if !info.account && !info.organisation && !info.project {
+      eprintln!("Something went terribly wrong.");
+    }
+
+    return ExitCode::FAILURE;
+  }
+
+  if response.status() == StatusCode::TOO_MANY_REQUESTS {
+    let info = response.body().await.unwrap();
+    eprintln!("Wow, please slow down.");
+    eprintln!("{}", String::from_utf8_lossy(&info));
     return ExitCode::FAILURE;
   }
 
@@ -309,7 +378,7 @@ pub async fn deploy(
             });
             if state == State::ERROR {
               pb.finish_and_clear();
-              println!("An error occurred.");
+              eprintln!("An error occurred.");
               break ExitCode::FAILURE;
             }
           }
@@ -317,11 +386,11 @@ pub async fn deploy(
             pb.finish_and_clear();
 
             if value.len() == 0 {
-              println!("An error occurred.");
+              eprintln!("An error occurred.");
               break ExitCode::FAILURE;
             }
 
-            println!("{}", value);
+            eprintln!("{}", value);
             break ExitCode::FAILURE;
           }
           Message::SUCCESS => {
@@ -345,7 +414,7 @@ pub async fn deploy(
         }
       },
       Frame::Close(_) => break ExitCode::SUCCESS,
-      _ => println!("unknown messag received"),
+      _ => eprintln!("unknown messag received"),
     }
   }
 }

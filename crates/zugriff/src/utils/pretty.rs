@@ -33,7 +33,10 @@ pub fn default_spinner() -> ProgressBar {
 }
 
 pub fn log(status: Option<Status>, message: &str) {
-  println!("{}", format(status, message));
+  match status {
+    Some(Status::WARNING) => eprintln!("{}", format(status, message)),
+    _ => println!("{}", format(status, message))
+  }
 }
 
 pub fn format(status: Option<Status>, message: &str) -> String {

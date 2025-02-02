@@ -5,6 +5,7 @@ import * as net from 'node:net';
 import * as util from 'node:util';
 import * as process from 'node:process';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { sha3_384_b64 } from '<sha3.min.js>';
 
 globalThis.AsyncLocalStorage = AsyncLocalStorage;
 globalThis.self = globalThis;
@@ -88,52 +89,102 @@ await portPromise;
 const server = http.createServer(async (req, res) => {
   if (debug) console.debug('Received request');
 
+  let tempPath = req.url
+    .replace(/\/*$/, '')
+    .replace(/(\?.*)$/, '')
+    .replace(/(#.*)$/, '');
+
+  let guards = config.guards || config.security?.guards || [];
+  if (guards.length > 0) {
+    let auth_required = false;
+    let guarded = false;
+
+    function extractCredentials(authorization) {
+      if (!authorization || authorization.length === 0 || !authorization.startsWith("Basic ")) {
+        return undefined;
+      } else {
+        authorization = authorization.slice("Basic ".length);
+        authorization = Buffer.from(authorization, 'base64').toString();
+        let [username, password] = authorization.split(':');
+
+        return {
+          username: sha3_384_b64(username),
+          password: password && password.length !== 0 ? sha3_384_b64(password) : undefined
+        };
+      }
+    }
+    let authorization = extractCredentials(req.headers.authorization);
+
+    for (let guard of config.guards || config.security?.guards || []) {
+      for (let pattern of guard.patterns) {
+        if (matchPattern(pattern, tempPath)) {
+          auth_required = true;
+          guarded = guard.credentials.username == authorization?.username
+            && guard.credentials.password == (authorization?.password || null);
+          if (guarded) {
+            break;
+          }
+        }
+      }
+
+      if (guarded) {
+        break;
+      }
+    }
+
+    if (auth_required && !guarded) {
+      res.writeHead(401, {
+        'WWW-Authenticate': 'Basic'
+      });
+      res.end();
+      return;
+    }
+  }
+
   // * Handle static content
 
-  if (req.method == 'GET' && req.url) {
-    let tempPath = req.url
-      .replace(/\/*$/, '')
-      .replace(/(\?.*)$/, '')
-      .replace(/(#.*)$/, '');
-
-    for (let redirect of config.redirects) {
-      if (redirect.path == tempPath) {
-        if (debug)
-          console.debug(
-            'Found redirect "' +
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS' && req.url) {
+    if (req.method === 'GET') {
+      for (let redirect of config.redirects || config.preprocessors?.redirects || []) {
+        if (redirect.path == tempPath) {
+          if (debug)
+            console.debug(
+              'Found redirect "' +
               redirect.location +
               '" for path "' +
               tempPath +
               '"' +
               'with status ' +
               redirect.status
-          );
+            );
 
-        res.writeHead(redirect.status, {
-          location: redirect.location,
-          'X-Zugriff-Static': true,
-        });
-        res.end();
-        return;
+          res.writeHead(redirect.status, {
+            location: redirect.location,
+            'X-Zugriff-Static': true,
+          });
+          res.end();
+          return;
+        }
       }
     }
 
-    if (config.puppets[tempPath]) {
+    let puppet = config.puppets[tempPath] || config.preprocessors?.puppets[tempPath];
+    if (puppet) {
       if (debug)
         console.debug(
           'Using puppet "' +
-            config.puppets[tempPath] +
+          puppet +
             '" for path "' +
             tempPath +
             '"'
         );
-      req.url = config.puppets[tempPath];
+      tempPath = puppet;
     }
 
     let filePath = path.join(
       dotZugriff,
       'assets',
-      req.url.replace(/(\?.*)$/, '').replace(/(#.*)$/, '')
+      tempPath
     );
 
     const extname = String(path.extname(filePath)).toLowerCase();
@@ -146,14 +197,93 @@ const server = http.createServer(async (req, res) => {
           console.error(err);
           res.writeHead(500);
           res.end();
-          return;
         } else {
-          res.writeHead(200, {
+          function toHex(value) {
+            return Buffer.from(value.toString(), 'utf8').toString('hex');
+          }
+
+          let stats = fs.statSync(filePath, { bigint: true });
+          let etag = '"' + toHex(stats.ino) + ':' + toHex(stats.size) + ':'
+            + toHex(stats.mtimeMs / BigInt(1000)) + ':'
+            + toHex(stats.mtimeNs - stats.mtimeMs * BigInt(1000000)) + '"';
+
+          let cacheControl = 'max-age=604800';
+          if (filePath.endsWith('.html') || filePath.endsWith('.htm') || filePath.endsWith('.xhtml')) {
+            cacheControl = 'no-cache';
+          }
+
+          for (let entry of config.assets) {
+            if ('path' in entry) {
+              if ('cacheControl' in entry && entry.path === tempPath) {
+                cacheControl = entry.cacheControl;
+              }
+            }
+          }
+
+          let headers = {
             'Content-Type': contentType,
             'X-Zugriff-Static': true,
-          });
-          res.end(content);
-          return;
+            'ETag': etag,
+            'Date': new Date().toUTCString(),
+            'Last-Modified': stats.mtime.toUTCString(),
+            'Cache-Control': cacheControl,
+            'Content-Length': content.length,
+            'Access-Control-Allow-Methods': 'GET, OPTIONS, HEAD',
+            'Access-Control-Allow-Origin':
+              config.security?.assets?.headers?.accessControlAllowOrigin
+                || 'http://' + req.headers.host,
+            'Accept-Ranges': 'bytes'
+          };
+
+          if (req.method === 'GET' || req.method === 'HEAD') {
+            if (
+              (req.headers['if-none-match']
+                && req.headers['if-none-match'].split(",").map((h) => h.trim()).includes(etag))
+              || (req.headers['if-modified-since']
+                && stats.mtime < new Date(req.headers['if-modified-since']))
+            ) {
+              res.writeHead(304, headers);
+              res.end();
+              return;
+            }
+
+            if (
+              req.headers['if-match']
+              && req.headers['if-match'].split(",").map((h) => h.trim()).includes(etag)
+            ) {
+              res.writeHead(412, headers);
+              res.end();
+              return;
+            }
+          }
+
+          if (req.method == 'GET') {
+            res.writeHead(200, headers);
+
+            let ranges = [];
+
+            if (req.headers.range) {
+              for (let part of req.headers.range.slice('bytes='.length).split(',')) {
+                part = part.trim();
+                if (part.startsWith('-')) {
+                  part = part.slice(1);
+                  ranges.push(content.buffer.slice(0, Number(part)));
+                } else if (part.endsWith('-')) {
+                  ranges.push(content.buffer.slice(Number(part)));
+                } else {
+                  let [start, end] = part.split('-');
+                  ranges.push(content.buffer.slice(Number(start), Number(end)));
+                }
+              }
+            } else {
+              ranges.push(content);
+            }
+
+            res.end(Buffer.concat(ranges));
+          } else {
+            res.writeHead(200, headers);
+            res.end();
+          }
         }
       });
       return;
@@ -161,8 +291,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   // * Dynamic content
-
-  let tempPath = req.url.replace(/(\?.*)$/, '');
   if (!tempPath.endsWith('/')) {
     tempPath += '/';
   }
@@ -234,27 +362,23 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  let chunks = [];
-  if (req.method != 'GET' && req.method != 'HEAD') {
-    let bodyResolver;
-    let bodyPromise = new Promise((resolve) => (bodyResolver = resolve));
-
-    req.on('data', (data) => {
-      chunks.push(data);
-    });
-
-    req.on('end', () => {
-      bodyResolver(true);
-    });
-
-    await bodyPromise;
-  }
-
-  let _req = new Request('http://' + address + ':' + port + req.url, {
+  let _req = new Request('http://' + req.headers.host + req.url, {
     body:
-      req.method == 'GET' || req.method == 'HEAD'
+      req.method === 'GET' || req.method === 'HEAD'
         ? null
-        : Buffer.concat(chunks),
+        : new ReadableStream({
+          start(controller) {
+            req.on('data', (data) => {
+              controller.enqueue(data);
+            });
+            req.on('end', () => {
+              controller.close();
+            });
+            req.on('error', (error) => {
+              controller.error(error);
+            });
+          }
+        }),
     method: req.method,
     headers: req.headers,
   });
@@ -312,8 +436,9 @@ server.listen(port, address, () => {
 });
 
 async function intercept(method, code, res) {
-  if (Array.isArray(config.interceptors)) {
-    let interceptor = config.interceptors.find(
+  if (Array.isArray(config.interceptors) || Array.isArray(config.postprocessors?.interceptors)) {
+    let interceptors = config.interceptors || config.postprocessors?.interceptors || [];
+    let interceptor = interceptors.find(
       (i) => i.method == method && i.status == code
     );
     if (!interceptor) return false;

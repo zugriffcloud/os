@@ -20,6 +20,7 @@ use path_absolutize::Absolutize;
 use crate::utils::{dependencies::NODE_ZUGRIFF, pack::shadow, pretty, task::Pure};
 
 static SERVER: &'static str = include_str!("../utils/template/server.js");
+static SHA3MINJS: &'static str = include_str!("../utils/template/sha3.min.js");
 
 pub async fn run(
   cwd: Option<String>,
@@ -37,6 +38,8 @@ pub async fn run(
   enable_static_router: bool,
   disable_static_router: bool,
   disable_function_discovery: bool,
+  guards: Vec<String>,
+  asset_cache_control: Vec<String>,
 ) -> ExitCode {
   let base = match cwd.clone() {
     Some(cwd) => Path::new(&cwd).into(),
@@ -76,44 +79,38 @@ pub async fn run(
     let _assets = assets.clone();
     let _function = function.clone();
     let _interceptors = interceptors.clone();
+    let _guards = guards.clone();
+    let _asset_cache_control = asset_cache_control.clone();
     set.spawn(async move {
-      let mut handle = Pure::new(tokio::spawn(setup(
-        _base.clone(),
-        cwd.clone(),
-        _function.clone(),
-        _assets.clone(),
-        puppets.clone(),
-        redirects.clone(),
-        disable_assets_default_index_html_redirect,
-        pack,
-        address.clone(),
-        _interceptors.clone(),
-        prefer_file_router,
-        prefer_puppets,
-        enable_static_router,
-        disable_static_router,
-        disable_function_discovery,
-      )));
+      macro_rules! handle {
+          () => {
+            Pure::new(tokio::spawn(setup(
+              _base.clone(),
+              cwd.clone(),
+              _function.clone(),
+              _assets.clone(),
+              puppets.clone(),
+              redirects.clone(),
+              disable_assets_default_index_html_redirect,
+              pack,
+              address.clone(),
+              _interceptors.clone(),
+              prefer_file_router,
+              prefer_puppets,
+              enable_static_router,
+              disable_static_router,
+              disable_function_discovery,
+              guards.clone(),
+              asset_cache_control.clone(),
+            )))
+          };
+      }
+
+      let mut handle = handle!();
 
       while let Some(_) = r.recv().await {
         handle.abort();
-        handle = Pure::new(tokio::spawn(setup(
-          _base.clone(),
-          cwd.clone(),
-          _function.clone(),
-          _assets.clone(),
-          puppets.clone(),
-          redirects.clone(),
-          disable_assets_default_index_html_redirect,
-          pack,
-          address.clone(),
-          _interceptors.clone(),
-          prefer_file_router,
-          prefer_puppets,
-          enable_static_router,
-          disable_static_router,
-          disable_function_discovery,
-        )));
+        handle = handle!();
       }
     });
 
@@ -158,7 +155,7 @@ pub async fn run(
         if !canonical.starts_with(&base) {
           let s = s.clone();
           if let Err(err) = hotwatch.watch(&canonical, watch_handler!(s)) {
-            println!("Unable to watch \"{:?}\".", canonical);
+            println!("Unable to watch asset \"{:?}\".", canonical);
             error!("{:?}", err);
             return ExitCode::FAILURE;
           }
@@ -171,7 +168,7 @@ pub async fn run(
         if !canonical.starts_with(&base) {
           let s = s.clone();
           if let Err(err) = hotwatch.watch(&canonical, watch_handler!(s)) {
-            println!("Unable to watch \"{:?}\".", canonical);
+            println!("Unable to watch function \"{:?}\".", canonical);
             error!("{:?}", err);
             return ExitCode::FAILURE;
           }
@@ -197,6 +194,8 @@ pub async fn run(
       enable_static_router,
       disable_static_router,
       disable_function_discovery,
+      guards,
+      asset_cache_control
     )
     .await;
   }
@@ -220,6 +219,8 @@ async fn setup(
   enable_static_router: bool,
   disable_static_router: bool,
   disable_function_discovery: bool,
+  guards: Vec<String>,
+  asset_cache_control: Vec<String>,
 ) {
   let tempdir = TempDir::new().unwrap();
 
@@ -283,6 +284,8 @@ async fn setup(
       enable_static_router,
       disable_static_router,
       disable_function_discovery,
+      guards,
+      asset_cache_control
     )
     .await
     {
@@ -296,14 +299,17 @@ async fn setup(
     base.join(".zugriff")
   };
 
-  let server = tempdir.path().join("server.mjs");
+  let sha3 = tempdir.path().join("sha3.min.mjs");
+  File::create(&sha3).unwrap().write_all(SHA3MINJS.as_bytes()).unwrap();
 
+  let server = tempdir.path().join("server.mjs");
   File::create(&server)
     .unwrap()
     .write_all(
       SERVER
         .replace("<DEBUG>", &env::var("DEBUG").is_ok().to_string())
         .replace("<BASEDIR>", &base.to_str().unwrap().replace('\\', "\\\\"))
+        .replace("<sha3.min.js>", &sha3.to_str().unwrap().replace('\\', "\\\\"))
         .replace(
           "<DOT_ZUGRIFF>",
           &dot_zugriff.to_str().unwrap().replace('\\', "\\\\"),

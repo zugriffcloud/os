@@ -12,27 +12,39 @@ import {
   staticRouter,
   writeFile,
 } from '$lib/util';
+import SHA3 from 'jssha';
 
 export default function createIntegration(
   config: {
-    disableAssetsDefaultIndexHTMLRedirect?: boolean;
-    puppets?: Record<string, string>;
-    redirects?: Array<{ path: string; location: string; status: number }>;
-    interceptors?: Array<{
-      status: number;
-      path: string;
-      method:
-        | 'GET'
-        | 'HEAD'
-        | 'POST'
-        | 'PUT'
-        | 'DELETE'
-        | 'CONNECT'
-        | 'OPTIONS'
-        | 'TRACE'
-        | 'PATCH';
-    }>;
-  } = {}
+    build: {
+      disableAssetsDefaultIndexHTMLRedirect?: boolean;
+      preprocessors?: {
+        puppets?: Record<string, string>;
+        redirects?: Array<{ path: string; location: string; status: number }>;
+        guards?: Array<{
+          credentials: { username: string; password: string | null };
+          scheme: 'basic';
+          patterns: Array<string>;
+        }>;
+      };
+      postprocessors?: {
+        interceptors?: Array<{
+          status: number;
+          path: string;
+          method:
+            | 'GET'
+            | 'HEAD'
+            | 'POST'
+            | 'PUT'
+            | 'DELETE'
+            | 'CONNECT'
+            | 'OPTIONS'
+            | 'TRACE'
+            | 'PATCH';
+        }>;
+      };
+    };
+  } = { build: {} }
 ): AstroIntegration {
   const SERVER_BUILD_FOLDER = '/.temp/';
   const CLIENT_FOLDER = '/assets/';
@@ -73,15 +85,12 @@ export default function createIntegration(
             staticOutput: 'stable',
             hybridOutput: 'stable',
             serverOutput: 'stable',
-            assets: {
-              supportKind: 'stable',
-              isSharpCompatible: false,
-              isSquooshCompatible: false,
-            },
+            sharpImageService: 'unsupported',
+            envGetSecret: 'stable',
           },
           adapterFeatures: {
             edgeMiddleware: true,
-            functionPerRoute: false,
+            buildOutput: 'server',
           },
         });
         _config = config;
@@ -115,6 +124,20 @@ export default function createIntegration(
         }
       },
       'astro:build:done': async (options) => {
+        let guards =
+          config.build.preprocessors?.guards?.map((guard) => {
+            guard.credentials.username = new SHA3('SHA3-384', 'TEXT')
+              .update(guard.credentials.username)
+              .getHash('B64');
+            if (guard.credentials.password) {
+              guard.credentials.password = new SHA3('SHA3-384', 'TEXT')
+                .update(guard.credentials.password)
+                .getHash('B64');
+            }
+
+            return guard;
+          }) || [];
+
         let { pages, routes, dir } = options;
 
         try {
@@ -130,7 +153,13 @@ export default function createIntegration(
           await esbuild.build({
             target: 'esnext',
             platform: 'browser',
-            external: ['postgres', 'ioredis', 'nodemailer', 'dotenv'],
+            external: [
+              'postgres',
+              'ioredis',
+              'nodemailer',
+              'dotenv',
+              'node:async_hooks',
+            ],
             entryPoints: [entryPath],
             outfile: buildPath,
             allowOverwrite: true,
@@ -216,7 +245,7 @@ export default function createIntegration(
             }
           }
 
-          for (let redirect of config.redirects || []) {
+          for (let redirect of config.build.preprocessors?.redirects || []) {
             redirect.path = redirect.path.replace(/\/$/g, '');
             redirects.push(redirect);
           }
@@ -229,17 +258,22 @@ export default function createIntegration(
                 technology: 'Astro',
               },
               functions: [{ path: '/index.js', pattern: '*' }],
-              puppets,
-              redirects,
               assets,
-              interceptors: assets.includes('/404.html')
-                ? [
-                    { status: 404, path: '/404.html', method: 'GET' },
-                    ...(config.interceptors || []),
-                  ]
-                : config.interceptors
-                  ? config.interceptors
-                  : null,
+              preprocessors: {
+                puppets,
+                redirects,
+                guards,
+              },
+              postprocessors: {
+                interceptors: assets.includes('/404.html')
+                  ? [
+                      { status: 404, path: '/404.html', method: 'GET' },
+                      ...(config.build.postprocessors?.interceptors || []),
+                    ]
+                  : config.build.postprocessors?.interceptors
+                    ? config.build.postprocessors.interceptors
+                    : [],
+              },
             })
           );
 
@@ -253,11 +287,11 @@ export default function createIntegration(
           );
 
           let redirects =
-            adapterConfig.disableAssetsDefaultIndexHTMLRedirect == true
+            adapterConfig.build.disableAssetsDefaultIndexHTMLRedirect == true
               ? []
               : staticRouter(assets);
 
-          for (let redirect of config.redirects || []) {
+          for (let redirect of config.build.preprocessors?.redirects || []) {
             redirect.path = redirect.path.replace(/\/$/g, '');
             redirects.push(redirect);
           }
@@ -270,17 +304,22 @@ export default function createIntegration(
                 technology: 'Astro',
               },
               functions: [],
-              puppets: {},
-              redirects,
               assets,
-              interceptors: assets.includes('/404.html')
-                ? [
-                    { status: 404, path: '/404.html', method: 'GET' },
-                    ...(config.interceptors || []),
-                  ]
-                : config.interceptors
-                  ? config.interceptors
-                  : null,
+              preprocessors: {
+                puppets: {},
+                redirects,
+                guards,
+              },
+              postprocessors: {
+                interceptors: assets.includes('/404.html')
+                  ? [
+                      { status: 404, path: '/404.html', method: 'GET' },
+                      ...(config.build.postprocessors?.interceptors || []),
+                    ]
+                  : config.build.postprocessors?.interceptors
+                    ? config.build.postprocessors.interceptors
+                    : [],
+              },
             })
           );
 

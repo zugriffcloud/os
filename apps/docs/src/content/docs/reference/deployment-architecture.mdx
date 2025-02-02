@@ -31,16 +31,32 @@ Files not listed in the configuration file will be stripped from the deployment.
 {
   "version": 1,
   "functions": [{ "path": "/index.js", "pattern": "*" }],
-  "puppets": {},
-  "redirects": [],
-  "assets": ["/favicon.ico", "/404.html" ...],
-  "interceptors": [{ "status": 404, "method": "GET", "path": "/404.html" }]
+  "assets": [
+    "/favicon.ico",
+    "/404.html",
+    { "path": "/menu.pdf", "cacheControl": "no-cache" },
+    ...
+  ],
+  "preprocessors": {
+    "puppets": {},
+    "redirects": [],
+    "guards": [],
+  },
+  "postprocessors": {
+    "interceptors": [
+      {
+        "status": 404,
+        "method": "GET",
+        "path": "/404.html"
+      }
+    ]
+  }
 }
 ```
 
 Please note that both file and asset paths referenced in the configuration file must be absolute from within their respected roots.
 
-Learn more about Puppets, Redirects and Interceptors [here](/concepts/edge-middleware).
+Learn more about Guards, Puppets, Redirects and Interceptors [here](/concepts/processors).
 
 ## Functions
 
