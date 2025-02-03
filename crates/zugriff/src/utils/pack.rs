@@ -25,12 +25,14 @@ use which::which;
 #[cfg(target_family = "unix")]
 use std::os::unix::fs::MetadataExt as _;
 
+use crate::utils::configuration::{
+  Asset, AuthCredentials, ConfigurationFile, DynamicRoute, Guard, Meta, Technology,
+};
+use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
+use sha3::{Digest, Sha3_384};
 #[cfg(target_family = "windows")]
 use std::os::windows::fs::MetadataExt as _;
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
-use sha3::{Digest, Sha3_384};
-use crate::utils::configuration::{Asset, AuthCredentials, ConfigurationFile, DynamicRoute, Guard, Meta, Technology};
 
 use super::configuration::{Interceptor, Method, Redirect};
 use super::dependencies::ESBUILD_ZUGRIFF;
@@ -387,7 +389,7 @@ pub fn report(compressed: &mut File) {
         "Basic Auth{} → {} (Guard)",
         match guard.credentials.password.is_some() {
           true => "",
-          false => " (Passwordless)"
+          false => " (Passwordless)",
         },
         pattern
       );
@@ -527,12 +529,19 @@ async fn bundle_function(
   esbuild.arg("--external:nodemailer");
   esbuild.arg("--external:dotenv");
   esbuild.arg("--external:node:async_hooks");
+  esbuild.arg("--external:async_hooks");
   esbuild.arg("--external:node:buffer");
+  esbuild.arg("--external:buffer");
   esbuild.arg("--external:node:assert");
+  esbuild.arg("--external:assert");
   esbuild.arg("--external:node:events");
+  esbuild.arg("--external:events");
   esbuild.arg("--external:node:path");
+  esbuild.arg("--external:path");
   esbuild.arg("--external:node:process");
+  esbuild.arg("--external:process");
   esbuild.arg("--external:node:util");
+  esbuild.arg("--external:util");
   // esbuild.arg("--external:node:string_decoder");
 
   for external in externals {
@@ -558,7 +567,7 @@ async fn bundle_function(
 
 pub fn attach_asset_cache_control(
   config: &mut ConfigurationFile,
-  asset_cache_control: Vec<String>
+  asset_cache_control: Vec<String>,
 ) {
   for cc in asset_cache_control {
     match split_args_basic(&cc) {
@@ -569,7 +578,7 @@ pub fn attach_asset_cache_control(
             Asset::Simple(_) => {
               remove = Some(index);
               break;
-            },
+            }
             Asset::Advanced { cache_control, .. } => {
               *cache_control = value.to_string();
               break;
@@ -580,7 +589,10 @@ pub fn attach_asset_cache_control(
         match remove {
           Some(index) => {
             config.assets.remove(index);
-            config.assets.push(Asset::Advanced { path, cache_control: value });
+            config.assets.push(Asset::Advanced {
+              path,
+              cache_control: value,
+            });
           }
           None => pretty::log(
             Some(pretty::Status::WARNING),
@@ -588,13 +600,13 @@ pub fn attach_asset_cache_control(
               "Unable to locate asset \"{}\" to customise Cache-Control header",
               path
             ),
-          )
+          ),
         }
-      },
+      }
       None => pretty::log(
         Some(pretty::Status::WARNING),
         &format!("Unable to attach Cache-Control header \"{}\"", cc),
-      )
+      ),
     }
   }
 }
@@ -666,7 +678,10 @@ pub fn attach_middleware(
 
     if prefer_puppets {
       for (from, to) in &index_index {
-        config.preprocessors.puppets.insert(from.to_string(), to.to_string());
+        config
+          .preprocessors
+          .puppets
+          .insert(from.to_string(), to.to_string());
       }
     } else {
       for (from, to) in index_index {
@@ -682,7 +697,10 @@ pub fn attach_middleware(
   for puppet in puppet {
     match split_args(&puppet) {
       Some((from, to)) => {
-        config.preprocessors.puppets.insert(from.to_owned(), to.to_owned());
+        config
+          .preprocessors
+          .puppets
+          .insert(from.to_owned(), to.to_owned());
       }
       None => pretty::log(
         Some(pretty::Status::WARNING),
@@ -778,10 +796,16 @@ pub fn attach_middleware(
             }
           }
 
-          let is_asset_included = config.assets.iter().find_map(|asset| match asset {
-            Asset::Simple(asset_path) => Some(asset_path == &path),
-            Asset::Advanced { path: asset_path, .. } => Some(asset_path == &path),
-          }).is_some();
+          let is_asset_included = config
+            .assets
+            .iter()
+            .find_map(|asset| match asset {
+              Asset::Simple(asset_path) => Some(asset_path == &path),
+              Asset::Advanced {
+                path: asset_path, ..
+              } => Some(asset_path == &path),
+            })
+            .is_some();
 
           if is_asset_included {
             for method in methods {
@@ -840,7 +864,7 @@ pub fn attach_middleware(
           let password = BASE64_STANDARD.encode(&password);
 
           Some(password)
-        },
+        }
       };
 
       AuthCredentials { username, password }
@@ -856,7 +880,7 @@ pub fn attach_middleware(
           }
 
           tmpl.patterns.push(path);
-        },
+        }
         None => {
           tmpl.credentials = hash_credentials(username, password);
           tmpl.patterns.push("*".to_string());
