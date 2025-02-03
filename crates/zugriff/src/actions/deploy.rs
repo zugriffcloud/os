@@ -7,9 +7,13 @@ use bytes::{Bytes, BytesMut};
 use futures::{channel::mpsc, SinkExt, StreamExt};
 use garde::Validate;
 use serde::Deserialize;
-use serde_envfile::from_file;
-use std::{fs::remove_dir_all, process::ExitCode, time::Duration};
+use serde_json::from_str;
 use std::{fs::OpenOptions, io::Seek};
+use std::{
+  fs::{read_to_string, remove_dir_all},
+  process::ExitCode,
+  time::Duration,
+};
 use std::{io::Write, path::Path};
 use tokio::io::AsyncReadExt;
 use url::Url;
@@ -171,7 +175,8 @@ pub async fn deploy(
     };
 
     let config = shadow.join("config.json");
-    let config = from_file::<ConfigurationFile>(&config).unwrap();
+    let config = read_to_string(config).unwrap();
+    let config = from_str::<ConfigurationFile>(&config).unwrap();
     if let Err(error) = config.validate() {
       eprintln!("Found invalid configuration");
       eprintln!("{}", error);
