@@ -43,3 +43,31 @@ const sharedGlobalProperties = new Set([
   'fetch',
   '__incrementalCache',
 ]);
+
+globalThis.LOCAL__zugriff__LocalAsyncStorage_als = new AsyncLocalStorage();
+
+// MIT licensed
+// https://github.com/cloudflare/next-on-pages/blob/2cd4c3c704a00e6b693229f1f14102abc6318d11/packages/next-on-pages/src/buildApplication/generateGlobalJs.ts#L14C9-L14C26
+
+globalThis.process = {
+  env: new Proxy(globalThis.process.env, {
+    ownKeys: () => Reflect.ownKeys({}),
+    getOwnPropertyDescriptor: (_, ...args) =>
+      Reflect.getOwnPropertyDescriptor({}, ...args),
+    get: (_, property) => undefined,
+    set: (_, property, value) => true,
+  }),
+};
+
+globalThis[Symbol.for('__cloudflare-request-context__')] = {
+  ctx: {
+    waitUntil: async (promise) => {
+      return await promise;
+    },
+  },
+  ownKeys: () => Reflect.ownKeys({}),
+  getOwnPropertyDescriptor: (_, ...args) =>
+    Reflect.getOwnPropertyDescriptor({}, ...args),
+  get: (_, property) => undefined,
+  set: (_, property, value) => true,
+};

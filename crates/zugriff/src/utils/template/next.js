@@ -2,8 +2,8 @@ import func from '<HANDLER>';
 
 export function handler(event) {
   return func(event, {
-    waitUntil: async (_) => {
-      return Promise.resolve();
+    waitUntil: async (promise) => {
+      return await promise;
     },
     passThroughOnException: () => {},
   });
