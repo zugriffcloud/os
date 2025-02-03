@@ -1,7 +1,7 @@
 use garde::Validate;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, str::FromStr};
 use std::hash::{Hash, Hasher};
+use std::{collections::HashMap, str::FromStr};
 use strum_macros::{Display, EnumIter};
 
 #[derive(Deserialize, Serialize, Validate, Debug, Clone)]
@@ -45,17 +45,14 @@ pub struct Meta {
 #[derive(Deserialize, Serialize, Validate, Debug, Clone, Eq, PartialEq)]
 #[serde(untagged)]
 pub enum Asset {
-  Simple(
-    #[garde(custom(validate_asset_path))]
-    String
-  ),
+  Simple(#[garde(custom(validate_asset_path))] String),
   Advanced {
     #[garde(custom(validate_asset_path))]
     path: String,
     #[serde(rename = "cacheControl")]
     #[garde(custom(validate_cache_control))]
     cache_control: String,
-  }
+  },
 }
 
 impl Hash for Asset {
@@ -139,7 +136,7 @@ impl FromStr for Method {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum AuthScheme {
-  Basic
+  Basic,
 }
 
 impl Default for AuthScheme {
@@ -163,7 +160,7 @@ pub struct Guard {
   #[garde(skip)]
   pub scheme: AuthScheme,
   #[garde(length(max = 10), inner(length(max = 350)))]
-  pub patterns: Vec<String>
+  pub patterns: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, Validate, Debug, Default, Clone)]
@@ -194,11 +191,19 @@ fn validate_redirect_path(value: &String, _ctx: &()) -> garde::Result {
 
 fn validate_puppets(value: &HashMap<String, String>, ctx: &()) -> garde::Result {
   for (from, to) in value {
-    validate_asset_path(from, ctx)?;
+    validate_puppet(from, ctx)?;
     validate_asset_path(to, ctx)?;
   }
 
   Ok(())
+}
+
+fn validate_puppet(value: &String, ctx: &()) -> garde::Result {
+  if value == "/" {
+    return Ok(());
+  }
+
+  validate_asset_path(value, ctx)
 }
 
 fn validate_asset_path(value: &String, _ctx: &()) -> garde::Result {
@@ -236,7 +241,7 @@ fn validate_cache_control(value: &String, _ctx: &()) -> garde::Result {
         Err(_) => Err(garde::Error::new(&format!(
           "Expected to find number after \"max-age=\" for value \"{}\"",
           value
-        )))
+        ))),
       }
     } else {
       Err(garde::Error::new(&format!(
@@ -251,7 +256,6 @@ fn validate_cache_control(value: &String, _ctx: &()) -> garde::Result {
     )))
   }
 }
-
 
 // Legacy Configuration Files
 #[derive(Deserialize, Clone)]
@@ -275,11 +279,11 @@ impl From<Legacy1ConfigurationFile> for ConfigurationFile {
       preprocessors: Preprocessors {
         puppets: legacy_configuration_file.puppets,
         redirects: legacy_configuration_file.redirects,
-        guards: Vec::new()
+        guards: Vec::new(),
       },
       postprocessors: Postprocessors {
         interceptors: legacy_configuration_file.interceptors.unwrap_or(Vec::new()),
-      }
+      },
     }
   }
 }
