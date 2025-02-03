@@ -7,7 +7,7 @@ use serde_json::to_vec;
 use size::Size;
 use std::collections::hash_map::RandomState;
 use std::collections::HashSet;
-use std::fs::{copy, read_to_string, File};
+use std::fs::{copy, read_to_string, File, OpenOptions};
 use std::hash::{BuildHasher, Hasher};
 use std::io::{Read, Seek, Write};
 use std::str::FromStr;
@@ -18,7 +18,7 @@ use std::{
 };
 use strum::IntoEnumIterator;
 use tar::{Archive, Builder};
-use tempfile::NamedTempFile;
+use tempfile::{tempfile, NamedTempFile};
 use tokio::process::Command;
 use which::which;
 
@@ -39,6 +39,7 @@ use super::dependencies::ESBUILD_ZUGRIFF;
 use super::pretty::{self, Status};
 
 pub static NEXT_ENTRYPOINT: &'static str = include_str!("./template/next.js");
+pub static NEXT_PRE: &'static str = include_str!("./template/next.pre.js");
 
 pub async fn shadow(
   externals: Vec<String>,
@@ -116,12 +117,30 @@ pub async fn shadow(
 
         function_name.push_str(".mjs");
 
+        let outfile = functions.clone().join(&function_name);
+
         bundle_function(
           externals.clone(),
           entrypoint.path().into(),
           functions.clone().join(&function_name),
         )
         .await?;
+
+        let mut temp = tempfile()?;
+        temp.write_all(NEXT_PRE.as_bytes())?;
+
+        {
+          let mut original = OpenOptions::new().read(true).open(&outfile)?;
+          std::io::copy(&mut original, &mut temp)?;
+          temp.rewind()?;
+        }
+
+        let mut original = OpenOptions::new()
+          .write(true)
+          .truncate(true)
+          .open(&outfile)?;
+
+        std::io::copy(&mut temp, &mut original)?;
 
         config.functions.push(DynamicRoute {
           path: format!("/{}", function_name.clone()),

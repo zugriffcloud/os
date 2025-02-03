@@ -33,18 +33,51 @@ try {
   process.exit(-1);
 }
 
-if ('puppets' in config && typeof config.puppets == 'object') {
-  for (let [from, to] of Object.entries(config.puppets)) {
+if (
+  ('puppets' in config && typeof config.puppets == 'object') ||
+  ('preprocessors' in config && 'puppets' in config.preprocessors)
+) {
+  let temp = {};
+
+  for (let [from, to] of Object.entries(
+    config.puppets || config.preprocessors.puppets
+  )) {
     from = from.replace(/\/$/g, '');
-    config.puppets[from] = to;
+    temp[from] = to;
+  }
+
+  if ('puppets' in config) {
+    delete config['puppets'];
+    config.preprocessors = {
+      puppets: temp,
+    };
+  } else {
+    config.preprocessors.puppets = temp;
   }
 }
 
-if ('redirects' in config && Array.isArray(config.redirects)) {
-  config.redirects = config.redirects.map((item) => {
+if (
+  ('redirects' in config && Array.isArray(config.redirects)) ||
+  ('preprocessors' in config &&
+    'redirects' in config.preprocessors &&
+    Array.isArray(config.preprocessors.redirects))
+) {
+  let redirects = config.redirects || config.preprocessors.redirects;
+
+  let temp = redirects.map((item) => {
     item.path = item.path.replace(/\/$/g, '');
     return item;
   });
+
+  if ('redirects' in config) {
+    delete config['redirects'];
+  }
+
+  if (!('preprocessors' in config)) {
+    config.preprocessors = {};
+  }
+
+  config.preprocessors.redirects = temp;
 }
 
 let callbacks = {};
@@ -100,16 +133,23 @@ const server = http.createServer(async (req, res) => {
     let guarded = false;
 
     function extractCredentials(authorization) {
-      if (!authorization || authorization.length === 0 || !authorization.startsWith("Basic ")) {
+      if (
+        !authorization ||
+        authorization.length === 0 ||
+        !authorization.startsWith('Basic ')
+      ) {
         return undefined;
       } else {
-        authorization = authorization.slice("Basic ".length);
+        authorization = authorization.slice('Basic '.length);
         authorization = Buffer.from(authorization, 'base64').toString();
         let [username, password] = authorization.split(':');
 
         return {
           username: sha3_384_b64(username),
-          password: password && password.length !== 0 ? sha3_384_b64(password) : undefined
+          password:
+            password && password.length !== 0
+              ? sha3_384_b64(password)
+              : undefined,
         };
       }
     }
@@ -119,8 +159,9 @@ const server = http.createServer(async (req, res) => {
       for (let pattern of guard.patterns) {
         if (matchPattern(pattern, tempPath)) {
           auth_required = true;
-          guarded = guard.credentials.username == authorization?.username
-            && guard.credentials.password == (authorization?.password || null);
+          guarded =
+            guard.credentials.username == authorization?.username &&
+            guard.credentials.password == (authorization?.password || null);
           if (guarded) {
             break;
           }
@@ -134,7 +175,7 @@ const server = http.createServer(async (req, res) => {
 
     if (auth_required && !guarded) {
       res.writeHead(401, {
-        'WWW-Authenticate': 'Basic'
+        'WWW-Authenticate': 'Basic',
       });
       res.end();
       return;
@@ -143,19 +184,23 @@ const server = http.createServer(async (req, res) => {
 
   // * Handle static content
 
-  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS' && req.url) {
+  if (
+    req.method === 'GET' ||
+    req.method === 'HEAD' ||
+    (req.method === 'OPTIONS' && req.url)
+  ) {
     if (req.method === 'GET') {
-      for (let redirect of config.redirects || config.preprocessors?.redirects || []) {
+      for (let redirect of config.preprocessors?.redirects || []) {
         if (redirect.path == tempPath) {
           if (debug)
             console.debug(
               'Found redirect "' +
-              redirect.location +
-              '" for path "' +
-              tempPath +
-              '"' +
-              'with status ' +
-              redirect.status
+                redirect.location +
+                '" for path "' +
+                tempPath +
+                '"' +
+                'with status ' +
+                redirect.status
             );
 
           res.writeHead(redirect.status, {
@@ -168,24 +213,16 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    let puppet = config.puppets[tempPath] || config.preprocessors?.puppets[tempPath];
+    let puppet = config.preprocessors?.puppets[tempPath];
     if (puppet) {
       if (debug)
         console.debug(
-          'Using puppet "' +
-          puppet +
-            '" for path "' +
-            tempPath +
-            '"'
+          'Using puppet "' + puppet + '" for path "' + tempPath + '"'
         );
       tempPath = puppet;
     }
 
-    let filePath = path.join(
-      dotZugriff,
-      'assets',
-      tempPath
-    );
+    let filePath = path.join(dotZugriff, 'assets', tempPath);
 
     const extname = String(path.extname(filePath)).toLowerCase();
     const contentType = MIME[extname] || 'application/octet-stream';
@@ -203,17 +240,28 @@ const server = http.createServer(async (req, res) => {
           }
 
           let stats = fs.statSync(filePath, { bigint: true });
-          let etag = '"' + toHex(stats.ino) + ':' + toHex(stats.size) + ':'
-            + toHex(stats.mtimeMs / BigInt(1000)) + ':'
-            + toHex(stats.mtimeNs - stats.mtimeMs * BigInt(1000000)) + '"';
+          let etag =
+            '"' +
+            toHex(stats.ino) +
+            ':' +
+            toHex(stats.size) +
+            ':' +
+            toHex(stats.mtimeMs / BigInt(1000)) +
+            ':' +
+            toHex(stats.mtimeNs - stats.mtimeMs * BigInt(1000000)) +
+            '"';
 
           let cacheControl = 'max-age=604800';
-          if (filePath.endsWith('.html') || filePath.endsWith('.htm') || filePath.endsWith('.xhtml')) {
+          if (
+            filePath.endsWith('.html') ||
+            filePath.endsWith('.htm') ||
+            filePath.endsWith('.xhtml')
+          ) {
             cacheControl = 'no-cache';
           }
 
           for (let entry of config.assets) {
-            if ('path' in entry) {
+            if (typeof entry != 'string') {
               if ('cacheControl' in entry && entry.path === tempPath) {
                 cacheControl = entry.cacheControl;
               }
@@ -223,24 +271,27 @@ const server = http.createServer(async (req, res) => {
           let headers = {
             'Content-Type': contentType,
             'X-Zugriff-Static': true,
-            'ETag': etag,
-            'Date': new Date().toUTCString(),
+            ETag: etag,
+            Date: new Date().toUTCString(),
             'Last-Modified': stats.mtime.toUTCString(),
             'Cache-Control': cacheControl,
             'Content-Length': content.length,
             'Access-Control-Allow-Methods': 'GET, OPTIONS, HEAD',
             'Access-Control-Allow-Origin':
-              config.security?.assets?.headers?.accessControlAllowOrigin
-                || 'http://' + req.headers.host,
-            'Accept-Ranges': 'bytes'
+              config.security?.assets?.headers?.accessControlAllowOrigin ||
+              'http://' + req.headers.host,
+            'Accept-Ranges': 'bytes',
           };
 
           if (req.method === 'GET' || req.method === 'HEAD') {
             if (
-              (req.headers['if-none-match']
-                && req.headers['if-none-match'].split(",").map((h) => h.trim()).includes(etag))
-              || (req.headers['if-modified-since']
-                && stats.mtime < new Date(req.headers['if-modified-since']))
+              (req.headers['if-none-match'] &&
+                req.headers['if-none-match']
+                  .split(',')
+                  .map((h) => h.trim())
+                  .includes(etag)) ||
+              (req.headers['if-modified-since'] &&
+                stats.mtime < new Date(req.headers['if-modified-since']))
             ) {
               res.writeHead(304, headers);
               res.end();
@@ -248,8 +299,11 @@ const server = http.createServer(async (req, res) => {
             }
 
             if (
+              req.headers['if-match'] &&
               req.headers['if-match']
-              && req.headers['if-match'].split(",").map((h) => h.trim()).includes(etag)
+                .split(',')
+                .map((h) => h.trim())
+                .includes(etag)
             ) {
               res.writeHead(412, headers);
               res.end();
@@ -263,7 +317,9 @@ const server = http.createServer(async (req, res) => {
             let ranges = [];
 
             if (req.headers.range) {
-              for (let part of req.headers.range.slice('bytes='.length).split(',')) {
+              for (let part of req.headers.range
+                .slice('bytes='.length)
+                .split(',')) {
                 part = part.trim();
                 if (part.startsWith('-')) {
                   part = part.slice(1);
@@ -367,18 +423,18 @@ const server = http.createServer(async (req, res) => {
       req.method === 'GET' || req.method === 'HEAD'
         ? null
         : new ReadableStream({
-          start(controller) {
-            req.on('data', (data) => {
-              controller.enqueue(data);
-            });
-            req.on('end', () => {
-              controller.close();
-            });
-            req.on('error', (error) => {
-              controller.error(error);
-            });
-          }
-        }),
+            start(controller) {
+              req.on('data', (data) => {
+                controller.enqueue(data);
+              });
+              req.on('end', () => {
+                controller.close();
+              });
+              req.on('error', (error) => {
+                controller.error(error);
+              });
+            },
+          }),
     method: req.method,
     headers: req.headers,
   });
@@ -436,8 +492,12 @@ server.listen(port, address, () => {
 });
 
 async function intercept(method, code, res) {
-  if (Array.isArray(config.interceptors) || Array.isArray(config.postprocessors?.interceptors)) {
-    let interceptors = config.interceptors || config.postprocessors?.interceptors || [];
+  if (
+    Array.isArray(config.interceptors) ||
+    Array.isArray(config.postprocessors?.interceptors)
+  ) {
+    let interceptors =
+      config.interceptors || config.postprocessors?.interceptors || [];
     let interceptor = interceptors.find(
       (i) => i.method == method && i.status == code
     );
