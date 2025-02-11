@@ -21,13 +21,25 @@ import { Steps } from '@astrojs/starlight/components';
    }
    ```
 
-2. Build your application with [`@cloudflare/next-on-pages`](https://www.npmjs.com/package/@cloudflare/next-on-pages)
+2. (Optional) Configure "next/image"
+
+   ```diff lang="js"
+   // next.config.js
+
+   ...
+   images: {
+     ...
+   +  unoptimized: true
+   }
+   ```
+
+3. Build your application with [`@cloudflare/next-on-pages`](https://www.npmjs.com/package/@cloudflare/next-on-pages)
 
    ```zsh
     npx @cloudflare/next-on-pages
    ```
 
-3. Deploy and Forget.
+4. Deploy and Forget.
 
    ```zsh
     zugriff deploy
