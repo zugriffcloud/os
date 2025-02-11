@@ -859,9 +859,10 @@ pub fn attach_middleware(
     }
   }
 
-  if _interceptors.len() > 0 {
-    config.postprocessors.interceptors = _interceptors.into_iter().collect::<Vec<_>>();
-  }
+  config
+    .postprocessors
+    .interceptors
+    .extend(_interceptors.into_iter());
 
   let mut _guards = Vec::new();
 
@@ -914,7 +915,7 @@ pub fn attach_middleware(
     _guards.push(tmpl);
   }
 
-  config.preprocessors.guards = _guards;
+  config.preprocessors.guards.extend(_guards);
 }
 
 fn split_args(input: &str) -> Option<(String, String)> {

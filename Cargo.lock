@@ -3292,7 +3292,7 @@ dependencies = [
 
 [[package]]
 name = "zugriff"
-version = "1.0.15"
+version = "1.0.16"
 dependencies = [
  "actix-web",
  "anyhow",

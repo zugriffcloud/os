@@ -127,7 +127,7 @@ const server = http.createServer(async (req, res) => {
     .replace(/(\?.*)$/, '')
     .replace(/(#.*)$/, '');
 
-  let guards = config.guards || config.security?.guards || [];
+  let guards = config.guards || config.preprocessors?.guards || [];
   if (guards.length > 0) {
     let auth_required = false;
     let guarded = false;
@@ -155,7 +155,7 @@ const server = http.createServer(async (req, res) => {
     }
     let authorization = extractCredentials(req.headers.authorization);
 
-    for (let guard of config.guards || config.security?.guards || []) {
+    for (let guard of config.guards || config.preprocessors?.guards || []) {
       for (let pattern of guard.patterns) {
         if (matchPattern(pattern, tempPath)) {
           auth_required = true;
@@ -277,9 +277,6 @@ const server = http.createServer(async (req, res) => {
             'Cache-Control': cacheControl,
             'Content-Length': content.length,
             'Access-Control-Allow-Methods': 'GET, OPTIONS, HEAD',
-            'Access-Control-Allow-Origin':
-              config.security?.assets?.headers?.accessControlAllowOrigin ||
-              'http://' + req.headers.host,
             'Accept-Ranges': 'bytes',
           };
 
