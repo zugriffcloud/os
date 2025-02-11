@@ -419,7 +419,7 @@ pub async fn deploy(
         }
       },
       Frame::Close(_) => break ExitCode::SUCCESS,
-      _ => eprintln!("unknown messag received"),
+      _ => eprintln!("received unknown message"),
     }
   }
 }
