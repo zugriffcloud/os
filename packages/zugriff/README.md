@@ -19,7 +19,7 @@ zugriff new demo && cd ./demo && npm i
 ```
 
 ```zsh
-zugriff run --watch
+zugriff preview --watch
 ```
 
 ```zsh
