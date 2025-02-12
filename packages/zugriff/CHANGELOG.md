@@ -1,5 +1,11 @@
 # zugriff
 
+## 1.0.7
+
+### Patch Changes
+
+- 4b48b12: fix preview command
+
 ## 1.0.6
 
 ### Patch Changes
