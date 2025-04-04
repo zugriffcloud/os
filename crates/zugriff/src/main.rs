@@ -1,7 +1,6 @@
 use clap::{Parser, Subcommand};
 use dotenvy::dotenv;
 use garde::Validate;
-use human_panic::{setup_panic, Metadata};
 use once_cell::sync::Lazy;
 use serde::{self, Deserialize, Serialize};
 use serde_envfile::de::from_iter;
@@ -373,13 +372,6 @@ async fn main() -> ExitCode {
   env_logger::init();
   dotenv().ok();
   dotenvy::from_filename(ENVFILE.clone()).ok();
-
-  setup_panic!(
-    Metadata::new(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
-      .authors(AUTHORS)
-      .homepage("https://zugriff.eu")
-      .support("Send your inquiry to `help@zugriff.eu`.")
-  );
 
   let args = Args::parse();
 
