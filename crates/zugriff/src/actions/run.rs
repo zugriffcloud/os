@@ -16,7 +16,6 @@ use tokio::{process::Command, sync::mpsc, task::JoinSet};
 use which::which;
 
 use path_absolutize::Absolutize;
-
 use crate::utils::{dependencies::NODE_ZUGRIFF, pack::shadow, pretty, task::Pure};
 
 static SERVER: &'static str = include_str!("../utils/template/server.js");
@@ -309,7 +308,7 @@ async fn setup(
       SERVER
         .replace("<DEBUG>", &env::var("DEBUG").is_ok().to_string())
         .replace("<BASEDIR>", &base.to_str().unwrap().replace('\\', "\\\\"))
-        .replace("<sha3.min.js>", &sha3.to_str().unwrap().replace('\\', "\\\\"))
+        .replace("<sha3.min.js>", &normalise_path_for_node(sha3))
         .replace(
           "<DOT_ZUGRIFF>",
           &dot_zugriff.to_str().unwrap().replace('\\', "\\\\"),
@@ -328,4 +327,19 @@ async fn setup(
   node.arg(server.absolutize().unwrap().as_os_str().to_str().unwrap());
 
   node.spawn().unwrap().wait().await.unwrap();
+}
+
+fn normalise_path_for_node(path: PathBuf) -> String {
+  let mut path = path.to_str().unwrap().replace('\\', "\\\\");
+
+  #[cfg(target_os = "windows")]
+  {
+    use typed_path::{Utf8Path, Utf8UnixEncoding, Utf8WindowsEncoding};
+    let t = Utf8Path::<Utf8WindowsEncoding>::new(&path);
+    let t = t.with_encoding::<Utf8UnixEncoding>();
+
+    path = t.to_string();
+  }
+
+  path
 }
