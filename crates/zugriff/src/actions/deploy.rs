@@ -369,8 +369,8 @@ pub async fn deploy(
         let text = String::from_utf8_lossy(text).to_owned();
         pb.set_message(text)
       }
-      Frame::Binary(message) => match bincode::deserialize::<Message>(&message) {
-        Ok(message) => match message {
+      Frame::Binary(message) => match bincode::serde::decode_from_slice::<Message, _>(&message, bincode::config::standard()) {
+        Ok((message, _)) => match message {
           Message::DOMAINS(mut value) => domains.append(&mut value),
           Message::STATE(state) => {
             pb.set_message(match state {
