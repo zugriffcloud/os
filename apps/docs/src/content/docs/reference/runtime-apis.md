@@ -8,7 +8,7 @@ To provide you with the best experience possible, we strive to adhere to the [Wi
 While we do not support all NodeJS APIs, many npm packages should run on zugriff.
 :::
 
-:::tip[Did you know?]
+:::tip
 You do not have to miss out on databases and sending emails. Check out our [ecosystem](/ecosystem/addons/postgres).
 :::
 

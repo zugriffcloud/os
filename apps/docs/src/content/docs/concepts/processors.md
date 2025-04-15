@@ -26,6 +26,10 @@ Puppets will, instead of redirecting the user, resolve a static asset.
 }
 ```
 
+```sh
+zugriff deploy ... --puppet /:/index.html
+```
+
 ### Redirects
 
 Traditional redirects can be configured as follows.
@@ -43,6 +47,10 @@ Traditional redirects can be configured as follows.
     ]
   }
 }
+```
+
+```sh
+zugriff deploy ... --redirect /:308:/index.html
 ```
 
 ### Guards
@@ -68,6 +76,10 @@ Find information on pattern matching [here](/reference/deployment-architecture#p
 }
 ```
 
+```sh
+zugriff deploy ... --guard user:pass
+```
+
 ## Postprocessors
 
 ### Interceptors
@@ -89,4 +101,8 @@ response. (e.g. unspecified static assets and function responses)
     ]
   }
 }
+```
+
+```sh
+zugriff deploy ... --intercept 404:GET:/404.html
 ```

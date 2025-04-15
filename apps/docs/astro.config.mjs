@@ -32,7 +32,32 @@ export default defineConfig({
         },
         {
           label: 'Guides',
-          autogenerate: { directory: 'guides' },
+          items: [
+            {
+              label: 'Getting Started',
+              link: 'guides/getting-started',
+            },
+            {
+              label: 'Creating a Deployment Token',
+              link: 'guides/creating-a-deployment-token',
+            },
+            {
+              label: 'Examples',
+              link: 'guides/examples',
+            },
+            {
+              label: 'Frameworks',
+              link: 'guides/frameworks',
+            },
+            {
+              label: 'Static Web Apps',
+              link: 'guides/static-web-applications',
+            },
+            {
+              label: 'Command Line Interface',
+              link: 'guides/command-line-interface',
+            },
+          ],
         },
         {
           label: 'Concepts',

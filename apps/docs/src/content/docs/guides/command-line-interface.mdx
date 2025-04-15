@@ -1,0 +1,112 @@
+---
+title: Command Line Interface
+---
+
+The command line interface will help you communicate with our API, quickly scaffold
+simple projects using Hono or bundle your application into a proper deployment.
+
+:::note
+The CLI might ask you to install [esbuild](https://esbuild.github.io) or
+[Node.js](https://nodejs.org/en). You will not have to abort and will be able to
+choose how to install dependencies.
+:::
+
+:::tip
+Add `-h` or `--help` to any command for more information or `-y` to accept defaults.
+:::
+
+## Subcommands
+
+### `new`
+
+Used to create a new project at a specific location. Add `--typescript` to create a
+project using Typescript.
+
+```sh
+zugriff new my-project
+```
+
+### `init`
+
+Similar to `new`, a new project is created. The location of the project will be your
+current working directory. The `--typescript` flag remains optional.
+
+```sh
+zugriff init --typescript
+```
+
+### `preview`
+
+:::caution
+We advise against using `preview` to serve a deployment outside your local network.
+:::
+
+Used to preview a project. A `.zugriff` must be present. Alternatively, appropriate
+flags must be set. The `--watch` flag will listen for changes in your current
+working directory and restart the server accordingly.
+
+Flags will not result in a modified configuration. Instead, deploy `.zugriff` with
+the same flags, use the `pack` command or rebuild your project using an adapter.
+
+Note that a (modified) `.zugriff` folder might be left behind when panicking.
+
+Please see the `deploy` or `pack` subcommands for available flags.
+
+```sh
+zugriff preview
+```
+
+### `deploy`
+
+Used to create a deployment of a project. Flags allow you to adjust deployment
+behaviour.
+
+- Specify a deployment token with `--deploymentToken <TOKEN>`\*
+- Specify a deployment name with `--name <NAME>` (e.g. `"docs: fix typo"`)
+- Connect a deployment with an existing domain `--promote <LABEL>` (e.g.
+  `production`)
+- Debug the `deploy` subcommand with `--dryRun` to output helpful information (e.g.
+  size, assets, functions, processors)
+
+The following flags can be used across the `deploy`, `pack` and `preview`
+subcommands.
+
+- Change your current working directory with `--cwd <CWD>` (e.g. `./my-app/`)
+- Help discover a function with `--function <FUNCTION>` (e.g. `./src/not-index.js`)
+- Disable automatic function discovery with `--disableFunctionDiscovery`
+- Attach an asset with `--asset <ASSET>` or `-a <ASSET>` (e.g. `./public`,
+  `./public/index.html` `./*`)
+- Intercept a response with an asset using the status code with `--intercept
+  <INTERCEPT>` (e.g. `404:/404.html`)
+- Attach a puppet with `--puppet <PUPPET>` to resolve a path to a static asset
+  (e.g. `/:/index.html`, _`path:location`_)
+- Throw a redirect with `--redirect <REDIRECT>` (e.g. `/:308:/index.html`,
+  _`path:status:location`_)
+- Pack a Next.js or custom application before deploying with `--pack`
+- Disable the automatic router configuration (e.g. `/:301:/index.html`) with
+  `--disableStaticRouter`\*\*
+- Enable the automatic router configuration (e.g. `/:301:/index.html`) with
+  `--enableStaticRouter`\*\*\*
+- Prefer a file-based routing with `--preferFileRouter` (e.g. "/about.html" ->
+  "/about")
+- Automatically configure puppets instead of redirects with `--preferPuppets`
+- Password-protect a path with `--guard <GUARD>` or `-g <GUARD>` (e.g. "user:pass"
+  or "user:pass:/secrets.txt")
+- Configure a caching strategy for assets with `--assetCacheControl 
+<ASSET_CACHE_CONTROL>` (`no-cache`, `no-store` and `max-age=n` are supported, e.g.
+  `no-cache:/main-menu.pdf`)
+
+\* _Required_ \
+\*\* _Applies to static web apps_ \
+\*\*\* _Applies to non-static web apps_
+
+### `uninstall`
+
+:::note
+On Windows you will have to remove specific files manually. The output of this
+command will tell you what files to remove.
+:::
+
+```sh
+zugriff uninstall
+```

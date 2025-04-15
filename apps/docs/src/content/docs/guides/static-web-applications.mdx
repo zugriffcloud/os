@@ -1,0 +1,62 @@
+---
+title: Static Web Apps
+---
+
+Static Web Apps do not run on the server but on a users browser. Deploying a Static Web App
+can be as simple as executing the following command.
+
+```zsh
+zugriff deploy --deploymentToken <TOKEN> --asset ./index.html
+```
+
+The command line interface will derive appropriate redirects (e.g. `/` to `/index.html`).
+To use [puppets](/concepts/processors/#puppets), which resolve to a static asset
+instead of throwing a redirect, pass the `--preferPuppets` flag.
+
+If you have a JavaScript file at the root of your current working directory or inside a
+`src` folder, disable function discovery with `--disableFunctionDiscovery`.
+
+:::note
+To check what is being deployed, attach `--dryRun` or replace `deploy` with `pack`. `pack`
+will generate the required
+[configuration file](/reference/deployment-architecture/#configuration),
+[folder structure](/reference/deployment-architecture/#_top),
+and copy assets to `.zugriff`. Attach the `--pack` flag to the `deploy` sub-command to
+build `.zugriff` from scratch before deploying.
+:::
+
+## Asset discovery
+
+### Roots
+
+Let's assume the following project structure.
+
+import { FileTree } from '@astrojs/starlight/components';
+
+<FileTree>
+
+- dist
+  - index.html
+  - main.js
+- public
+  - favicon.ico
+  - .well-known
+    - security.txt
+
+</FileTree>
+
+The output of a Vite build is written to `dist`, while `public` contains static assets to be
+included in the deployment. In order for the contents of both `dist` and `public` to be at
+the root level of a deployment (e.g. `example.com/index.html`, `example.com/favicon.ico`),
+instead of preserving the folder with `--asset ./public`, flatten `public` using
+`--asset ./public/*`. In this example, flattening `public` will not affect `.well-known` and
+preserve the path of `./public/.well-known/security.txt` (`example.com/.well-known/security.txt`).
+
+:::tip
+
+<i>
+  You might want to look into catching 404s using interceptors and using guards
+  to password-protect your application. TLDR; `--intercept 404:/404.html`,
+  `--guard user:pass`, `--guard user:pass:/secrets.txt`.
+</i>
+:::
