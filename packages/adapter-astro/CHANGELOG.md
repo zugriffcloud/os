@@ -1,5 +1,11 @@
 # @zugriff/adapter-astro
 
+## 1.0.6
+
+### Patch Changes
+
+- 08319a1: fix after build activity asset handling
+
 ## 1.0.5
 
 ### Patch Changes
