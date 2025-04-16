@@ -50,6 +50,7 @@ export default function createIntegration(
   const CLIENT_FOLDER = '/assets/';
 
   let _config: AstroConfig;
+  let _buildOutput: 'static' | 'server';
 
   let adapterConfig = config;
 
@@ -74,9 +75,57 @@ export default function createIntegration(
             ],
           },
           image: { service: passthroughImageService() },
+          integrations: [
+            {
+              name: 'astro:copy-zugriff-output',
+              hooks: {
+                'astro:build:done': async (config) => {
+                  const _staticDir =
+                    _buildOutput === 'static'
+                      ? _config.outDir
+                      : _config.build.client;
+                  let assets = discoverFiles(_staticDir.pathname).map(
+                    (asset) => (asset.startsWith('/') ? asset : '/' + asset)
+                  );
+
+                  let configFile = JSON.parse(
+                    fs
+                      .readFileSync(path.join('.zugriff', 'config.json'))
+                      .toString()
+                  );
+
+                  for (let asset of assets) {
+                    if (!configFile.assets.includes(asset)) {
+                      let from = path.join(_staticDir.pathname, asset.slice(1));
+                      let to = path.join('.zugriff', 'assets', asset.slice(1));
+                      configFile.assets.push(asset);
+                      createDirIfNotExists(to);
+                      fs.copyFileSync(from, to);
+
+                      if (
+                        _buildOutput == 'static' &&
+                        adapterConfig.build
+                          .disableAssetsDefaultIndexHTMLRedirect != true
+                      ) {
+                        configFile.preprocessors.redirects = [
+                          ...(configFile.preprocessors.redirects || []),
+                          ...staticRouter([asset]),
+                        ];
+                      }
+                    }
+                  }
+
+                  fs.writeFileSync(
+                    path.join('.zugriff', 'config.json'),
+                    JSON.stringify(configFile)
+                  );
+                },
+              },
+            },
+          ],
         });
       },
-      'astro:config:done': ({ setAdapter, config }) => {
+      'astro:config:done': ({ setAdapter, config, buildOutput }) => {
         setAdapter({
           name: '@zugriff/adapter-astro',
           serverEntrypoint: '@zugriff/adapter-astro/handler.js',
@@ -94,6 +143,7 @@ export default function createIntegration(
           },
         });
         _config = config;
+        _buildOutput = buildOutput;
       },
       'astro:build:setup': ({ vite, target }) => {
         if (target === 'server') {
@@ -250,7 +300,7 @@ export default function createIntegration(
             redirects.push(redirect);
           }
 
-          writeFile(
+          fs.writeFileSync(
             path.join('.zugriff', 'config.json'),
             JSON.stringify({
               version: 1,
@@ -296,7 +346,7 @@ export default function createIntegration(
             redirects.push(redirect);
           }
 
-          writeFile(
+          fs.writeFileSync(
             path.join('.zugriff', 'config.json'),
             JSON.stringify({
               version: 1,
