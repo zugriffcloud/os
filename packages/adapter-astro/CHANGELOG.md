@@ -1,5 +1,11 @@
 # @zugriff/adapter-astro
 
+## 1.0.7
+
+### Patch Changes
+
+- 765c444: fix static projects
+
 ## 1.0.6
 
 ### Patch Changes
