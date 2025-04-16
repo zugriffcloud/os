@@ -1,4 +1,8 @@
-import type { AstroConfig, AstroIntegration } from 'astro';
+import type {
+  AstroConfig,
+  AstroIntegration,
+  IntegrationResolvedRoute,
+} from 'astro';
 import { wasmModuleLoader } from '$lib/wasm';
 import { passthroughImageService } from 'astro/config';
 import * as esbuild from 'esbuild';
@@ -51,6 +55,7 @@ export default function createIntegration(
 
   let _config: AstroConfig;
   let _buildOutput: 'static' | 'server';
+  let _serverRoutes: IntegrationResolvedRoute[];
 
   let adapterConfig = config;
 
@@ -80,11 +85,7 @@ export default function createIntegration(
               name: 'astro:copy-zugriff-output',
               hooks: {
                 'astro:build:done': async (config) => {
-                  const _staticDir =
-                    _buildOutput === 'static'
-                      ? _config.outDir
-                      : _config.build.client;
-                  let assets = discoverFiles(_staticDir.pathname).map(
+                  let assets = discoverFiles(_config.build.client.pathname).map(
                     (asset) => (asset.startsWith('/') ? asset : '/' + asset)
                   );
 
@@ -96,7 +97,10 @@ export default function createIntegration(
 
                   for (let asset of assets) {
                     if (!configFile.assets.includes(asset)) {
-                      let from = path.join(_staticDir.pathname, asset.slice(1));
+                      let from = path.join(
+                        _config.build.client.pathname,
+                        asset.slice(1)
+                      );
                       let to = path.join('.zugriff', 'assets', asset.slice(1));
                       configFile.assets.push(asset);
                       createDirIfNotExists(to);
@@ -124,6 +128,9 @@ export default function createIntegration(
             },
           ],
         });
+      },
+      'astro:routes:resolved': (params) => {
+        _serverRoutes = params.routes;
       },
       'astro:config:done': ({ setAdapter, config, buildOutput }) => {
         setAdapter({
@@ -236,11 +243,11 @@ export default function createIntegration(
           let puppets = {};
           let redirects = [];
 
-          for (let route of options.routes) {
+          for (let route of _serverRoutes) {
             if (route.type == 'redirect') {
               if (typeof route.redirect == 'string') {
                 redirects.push({
-                  path: route.route,
+                  path: route.pathname,
                   status: 308,
                   location: route.redirect,
                 });
@@ -251,10 +258,10 @@ export default function createIntegration(
 
             if (route.type != 'page') continue;
 
-            if (route.prerender) {
+            if (route.isPrerendered) {
               if (route.params.length > 0) {
                 for (let asset of assets.filter((asset) =>
-                  route.pattern.test(asset)
+                  route.patternRegex.test(asset)
                 )) {
                   if (!asset.endsWith('.html')) continue;
                   let parts = asset.split('/');
@@ -267,29 +274,29 @@ export default function createIntegration(
                   puppets[puppet] = asset;
                 }
               } else {
-                if (route.route == '/' || route.route == '/index.html') {
+                if (route.pathname == '/' || route.pathname == '/index.html') {
                   if (assets.includes('/index.html')) {
                     puppets['/'] = '/index.html';
                   }
                   continue;
                 }
 
-                if (route.route.endsWith('/index.html')) {
-                  if (assets.includes(route.route)) {
-                    puppets[route.route.replace(/\/index\.html$/, '')] =
-                      route.route;
+                if (route.pathname.endsWith('/index.html')) {
+                  if (assets.includes(route.pathname)) {
+                    puppets[route.pathname.replace(/\/index\.html$/, '')] =
+                      route.pathname;
                   }
 
                   continue;
                 }
 
-                if (assets.includes(route.route + '.html')) {
-                  puppets[route.route] = route.route + '.html';
+                if (assets.includes(route.pathname + '.html')) {
+                  puppets[route.pathname] = route.pathname + '.html';
                   continue;
                 }
 
-                if (assets.includes(route.route + '/index.html')) {
-                  puppets[route.route] = route.route + '/index.html';
+                if (assets.includes(route.pathname + '/index.html')) {
+                  puppets[route.pathname] = route.pathname + '/index.html';
                 }
               }
             }
@@ -332,8 +339,8 @@ export default function createIntegration(
             recursive: true,
           });
         } else {
-          let assets = discoverFiles(_config.outDir.pathname).map((asset) =>
-            asset.startsWith('/') ? asset : '/' + asset
+          let assets = discoverFiles(_config.build.client.pathname).map(
+            (asset) => (asset.startsWith('/') ? asset : '/' + asset)
           );
 
           let redirects =
@@ -346,6 +353,7 @@ export default function createIntegration(
             redirects.push(redirect);
           }
 
+          createDirIfNotExists(path.join('.zugriff', 'config.json'));
           fs.writeFileSync(
             path.join('.zugriff', 'config.json'),
             JSON.stringify({
@@ -374,7 +382,7 @@ export default function createIntegration(
           );
 
           createDirIfNotExists(path.join('.zugriff', 'assets'));
-          fs.cpSync(_config.outDir, path.join('.zugriff', 'assets'), {
+          fs.cpSync(_config.build.client, path.join('.zugriff', 'assets'), {
             recursive: true,
           });
         }
