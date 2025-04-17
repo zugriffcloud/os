@@ -1,5 +1,11 @@
 # @zugriff/adapter-sveltekit
 
+## 1.0.5
+
+### Patch Changes
+
+- a0d46bf: bump dependencies
+
 ## 1.0.4
 
 ### Patch Changes

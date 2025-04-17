@@ -1,6 +1,6 @@
 {
   "name": "@zugriff/cryptography",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Cryptography: Leverage Native Performance",
   "repository": {
     "type": "git",

@@ -1,6 +1,6 @@
 {
   "name": "@zugriff/adapter-astro",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Deploy your Astro application with zugriff",
   "repository": {
     "type": "git",
