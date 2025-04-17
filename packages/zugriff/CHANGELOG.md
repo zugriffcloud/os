@@ -1,5 +1,11 @@
 # zugriff
 
+## 1.0.8
+
+### Patch Changes
+
+- 98f1397: bump dependencies
+
 ## 1.0.7
 
 ### Patch Changes
