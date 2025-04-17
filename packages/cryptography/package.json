@@ -38,6 +38,6 @@
   "author": "Luca Goslar <luca@zugriff.eu>",
   "license": "MIT",
   "dependencies": {
-    "hash-wasm": "^4.11.0"
+    "hash-wasm": "^4.12.0"
   }
 }

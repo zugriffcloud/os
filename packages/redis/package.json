@@ -35,6 +35,6 @@
   "author": "Luca Goslar <luca@zugriff.eu>",
   "license": "MIT",
   "dependencies": {
-    "ioredis": "^5.4.1"
+    "ioredis": "^5.6.1"
   }
 }

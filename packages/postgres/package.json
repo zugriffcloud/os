@@ -36,6 +36,6 @@
   "author": "Luca Goslar <luca@zugriff.eu>",
   "license": "MIT",
   "dependencies": {
-    "postgres": "^3.4.4"
+    "postgres": "^3.4.5"
   }
 }

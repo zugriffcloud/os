@@ -46,7 +46,7 @@
   "author": "Luca Goslar <luca@zugriff.eu>",
   "license": "MIT",
   "dependencies": {
-    "@remix-run/react": "^2"
+    "@remix-run/react": "^2.16.5"
   },
   "peerDependencies": {
     "@remix-run/react": "^2",
@@ -56,8 +56,8 @@
     "remix": "^2"
   },
   "devDependencies": {
-    "@remix-run/dev": "^2",
-    "esbuild": "^0.24",
+    "@remix-run/dev": "^2.16.5",
+    "esbuild": "^0.25.2",
     "jssha": "^3.3.1"
   }
 }
