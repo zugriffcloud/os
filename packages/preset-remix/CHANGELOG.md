@@ -1,5 +1,11 @@
 # @zugriff/preset-remix
 
+## 1.0.4
+
+### Patch Changes
+
+- bd5b8fa: fix jssha import and move runtime dependencies
+
 ## 1.0.3
 
 ### Patch Changes
