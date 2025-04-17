@@ -1,6 +1,6 @@
 // @ts-ignore
-import { useNitroApp } from '#internal/nitro/app';
-import '#internal/nitro/virtual/polyfill';
+import { useNitroApp } from 'nitro/runtime';
+import '#nitro-internal-pollyfills';
 
 const nitroApp = useNitroApp();
 

@@ -28,7 +28,26 @@ export default <NitroPreset>{
     serverDir: path.join('.zugriff', 'functions').toString(),
   },
   rollupConfig: {
-    external: ['postgres', 'ioredis', 'nodemailer', 'dotenv'],
+    external: [
+      'postgres',
+      'ioredis',
+      'nodemailer',
+      'dotenv',
+      'node:async_hooks',
+      'async_hooks',
+      'node:buffer',
+      'buffer',
+      'node:assert',
+      'assert',
+      'node:events',
+      'events',
+      'node:path',
+      'path',
+      'node:process',
+      'process',
+      'node:util',
+      'util',
+    ],
     output: {
       entryFileNames: 'index.js',
       format: 'esm',
@@ -36,7 +55,7 @@ export default <NitroPreset>{
     },
   },
   commands: {
-    preview: 'zugriff run',
+    preview: 'zugriff preview',
     deploy: 'zugriff deploy',
   },
   hooks: {
