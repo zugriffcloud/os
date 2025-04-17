@@ -1,5 +1,11 @@
 # @zugriff/adapter-astro
 
+## 1.0.8
+
+### Patch Changes
+
+- a0d46bf: bump dependencies
+
 ## 1.0.7
 
 ### Patch Changes
