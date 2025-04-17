@@ -1,5 +1,11 @@
 # @zugriff/preset-nitro
 
+## 1.1.0
+
+### Minor Changes
+
+- e0c488a: update nitro imports and bump dependencies
+
 ## 1.0.3
 
 ### Patch Changes
