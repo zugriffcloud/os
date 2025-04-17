@@ -1,5 +1,11 @@
 # @zugriff/preset-remix
 
+## 1.0.5
+
+### Patch Changes
+
+- f59e960: move jssha
+
 ## 1.0.4
 
 ### Patch Changes
