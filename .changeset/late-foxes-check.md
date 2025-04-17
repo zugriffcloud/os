@@ -1,0 +1,5 @@
+---
+'zugriff': patch
+---
+
+bump dependencies
