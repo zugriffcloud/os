@@ -1,14 +1,14 @@
 use awc::{
+  Client,
   http::StatusCode,
   ws::{self, Frame},
-  Client,
 };
 use bytes::{Bytes, BytesMut};
-use futures::{channel::mpsc, SinkExt, StreamExt};
+use futures::{SinkExt, StreamExt, channel::mpsc};
 use garde::Validate;
 use serde::Deserialize;
 use serde_json::from_str;
-use std::{fs::OpenOptions, io::Seek};
+use std::{env, fs::OpenOptions, io::Seek};
 use std::{
   fs::{read_to_string, remove_dir_all},
   process::ExitCode,
@@ -21,13 +21,13 @@ use url::Url;
 use crate::utils::configuration::Legacy1ConfigurationFile;
 use crate::utils::pack::attach_asset_cache_control;
 use crate::{
+  ENVIRONMENT,
   utils::{
     configuration::ConfigurationFile,
     deploy::{self, Message, State},
     pack::{attach_middleware, compress, report, shadow},
     pretty::{self, default_spinner},
   },
-  ENVIRONMENT,
 };
 
 pub async fn deploy(
@@ -226,10 +226,14 @@ pub async fn deploy(
     None => client,
   };
 
-  let client = client.append_header((
+  let mut client = client.append_header((
     "X-DEPLOYMENT-PROMOTIONS",
     serde_json::to_string(&promotions).unwrap(),
   ));
+
+  if let Ok(value) = env::var("ZUGRIFF_CLI_X_DEPLOYMENT") {
+    client = client.append_header(("X-DEPLOYMENT", value));
+  }
 
   let (mut tx, rx) = mpsc::channel::<Result<Bytes, awc::error::HttpError>>(1);
 
@@ -369,55 +373,58 @@ pub async fn deploy(
         let text = String::from_utf8_lossy(text).to_owned();
         pb.set_message(text)
       }
-      Frame::Binary(message) => match bincode::serde::decode_from_slice::<Message, _>(&message, bincode::config::standard()) {
-        Ok((message, _)) => match message {
-          Message::DOMAINS(mut value) => domains.append(&mut value),
-          Message::STATE(state) => {
-            pb.set_message(match state {
-              State::SIZE => "Checking size of deployment.",
-              State::SECURITY => "Validating deployment security.",
-              State::STRUCTURE => "Validating deployment structure.",
-              State::UPLOAD => "Preparing deployment for distribution.",
-              State::DNS => "Triggering deployment distribution.",
-              State::ERROR => "An error occurred.",
-            });
-            if state == State::ERROR {
+      Frame::Binary(message) => {
+        match bincode::serde::decode_from_slice::<Message, _>(&message, bincode::config::standard())
+        {
+          Ok((message, _)) => match message {
+            Message::DOMAINS(mut value) => domains.append(&mut value),
+            Message::STATE(state) => {
+              pb.set_message(match state {
+                State::SIZE => "Checking size of deployment.",
+                State::SECURITY => "Validating deployment security.",
+                State::STRUCTURE => "Validating deployment structure.",
+                State::UPLOAD => "Preparing deployment for distribution.",
+                State::DNS => "Triggering deployment distribution.",
+                State::ERROR => "An error occurred.",
+              });
+              if state == State::ERROR {
+                pb.finish_and_clear();
+                eprintln!("An error occurred.");
+                break ExitCode::FAILURE;
+              }
+            }
+            Message::ERROR(value) => {
               pb.finish_and_clear();
-              eprintln!("An error occurred.");
+
+              if value.len() == 0 {
+                eprintln!("An error occurred.");
+                break ExitCode::FAILURE;
+              }
+
+              eprintln!("{}", value);
               break ExitCode::FAILURE;
             }
-          }
-          Message::ERROR(value) => {
-            pb.finish_and_clear();
+            Message::SUCCESS => {
+              pb.finish_and_clear();
 
-            if value.len() == 0 {
-              eprintln!("An error occurred.");
-              break ExitCode::FAILURE;
+              if domains.len() > 0 {
+                println!("All set! Access your deployment at … \n");
+              } else {
+                println!("All set! \n");
+              }
+
+              for domain in domains {
+                pretty::log(Some(pretty::Status::LINK), &format!("https://{}", &domain));
+              }
+
+              break ExitCode::SUCCESS;
             }
-
-            eprintln!("{}", value);
-            break ExitCode::FAILURE;
+          },
+          Err(err) => {
+            panic!("Unable to extract message from bincode. {}", err);
           }
-          Message::SUCCESS => {
-            pb.finish_and_clear();
-
-            if domains.len() > 0 {
-              println!("All set! Access your deployment at … \n");
-            } else {
-              println!("All set! \n");
-            }
-
-            for domain in domains {
-              pretty::log(Some(pretty::Status::LINK), &format!("https://{}", &domain));
-            }
-
-            break ExitCode::SUCCESS;
-          }
-        },
-        Err(err) => {
-          panic!("Unable to extract message from bincode. {}", err);
         }
-      },
+      }
       Frame::Close(_) => break ExitCode::SUCCESS,
       _ => eprintln!("received unknown message"),
     }
