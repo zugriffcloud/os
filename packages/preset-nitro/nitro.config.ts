@@ -19,6 +19,30 @@ try {
   }
 } catch (_) {}
 
+let externals = [];
+
+if (
+  hasDependency('@zugriff/postgres') == true &&
+  hasDependency('postgres') == false
+) {
+  externals.push('postgres');
+}
+if (
+  hasDependency('@zugriff/redis') == true &&
+  hasDependency('ioredis') == false
+) {
+  externals.push('ioredis');
+}
+if (
+  hasDependency('@zugriff/mailman') == true &&
+  hasDependency('nodemailer') == false
+) {
+  externals.push('nodemailer');
+}
+if (hasDependency('@zugriff/env') == true) {
+  externals.push('dotenv');
+}
+
 export default <NitroPreset>{
   extends: 'base-worker',
   entry: fileURLToPath(new URL('entry.ts', import.meta.url)),
@@ -29,10 +53,7 @@ export default <NitroPreset>{
   },
   rollupConfig: {
     external: [
-      'postgres',
-      'ioredis',
-      'nodemailer',
-      'dotenv',
+      ...externals,
       'node:async_hooks',
       'async_hooks',
       'node:buffer',
@@ -47,6 +68,30 @@ export default <NitroPreset>{
       'process',
       'node:util',
       'util',
+      'node:string_decoder',
+      'string_decoder',
+      'zugriff:sockets',
+      'cloudflare:sockets',
+      'node:net',
+      'net',
+      'node:tls',
+      'tls',
+      'node:dns',
+      'dns',
+      'node:os',
+      'os',
+      'node:stream',
+      'stream',
+      'node:url',
+      'url',
+      'node:diagnostics_channel',
+      'diagnostics_channel',
+      'node:zlib',
+      'zlib',
+      'node:crypto',
+      'crypto',
+      'node:perf_hooks',
+      'perf_hooks',
     ],
     output: {
       entryFileNames: 'index.js',
@@ -106,4 +151,50 @@ function discoverFiles(basePath: string, clean = true): Array<string> {
   if (clean) files = files.map((file) => file.substring(basePath.length));
 
   return files;
+}
+
+export function doesFileExist(location) {
+  try {
+    let stats = fs.lstatSync(location);
+    return stats.isFile();
+  } catch (_) {
+    return false;
+  }
+}
+
+let packageJson: object;
+
+export function hasDependency(dependency: string) {
+  if (packageJson) {
+    if (
+      'dependencies' in packageJson &&
+      typeof packageJson.dependencies == 'object' &&
+      dependency in packageJson.dependencies
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  if (doesFileExist('package.json')) {
+    try {
+      let data = fs.readFileSync('package.json');
+      let value = JSON.parse(data.toString());
+      packageJson = value;
+      if (
+        'dependencies' in value &&
+        typeof value.dependencies == 'object' &&
+        dependency in value.dependencies
+      ) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (_) {
+      return 'unknown';
+    }
+  }
+
+  return 'unknown';
 }

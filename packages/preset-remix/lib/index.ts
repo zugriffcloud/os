@@ -4,7 +4,12 @@ import * as fs from 'node:fs';
 import * as esbuild from 'esbuild';
 import type { Preset } from '@remix-run/dev';
 import SHA3 from 'jssha';
-import { discoverFiles, doesFileExist, staticRouter } from '$lib/util';
+import {
+  discoverFiles,
+  doesFileExist,
+  hasDependency,
+  staticRouter,
+} from '$lib/util';
 
 let entryServer: string;
 
@@ -16,6 +21,7 @@ export default function zugriff(
     disableEntryServerReplacement?: boolean;
     disableEntryServerCreation?: boolean;
     build?: {
+      externals?: string[];
       disableDefaultIndexHTMLRedirect?: boolean;
       preprocessors?: {
         puppets?: Record<string, string>;
@@ -116,7 +122,7 @@ export default function zugriff(
     remixConfig: () => ({
       buildDirectory: path.join('.zugriff', 'tmp'),
       manifest: true,
-      buildEnd: (config) => {
+      buildEnd: async (config) => {
         let guards =
           options.build?.preprocessors?.guards?.map((guard) => {
             guard.credentials.username = new SHA3('SHA3-384', 'TEXT')
@@ -148,6 +154,30 @@ export default function zugriff(
             handler
           );
 
+          let externals = options.build.externals ?? [];
+
+          if (
+            (await hasDependency('@zugriff/postgres')) == true &&
+            (await hasDependency('postgres')) == false
+          ) {
+            externals.push('postgres');
+          }
+          if (
+            (await hasDependency('@zugriff/redis')) == true &&
+            (await hasDependency('ioredis')) == false
+          ) {
+            externals.push('ioredis');
+          }
+          if (
+            (await hasDependency('@zugriff/mailman')) == true &&
+            (await hasDependency('nodemailer')) == false
+          ) {
+            externals.push('nodemailer');
+          }
+          if ((await hasDependency('@zugriff/env')) == true) {
+            externals.push('dotenv');
+          }
+
           esbuild.buildSync({
             bundle: true,
             target: 'esnext',
@@ -155,7 +185,47 @@ export default function zugriff(
             platform: 'browser',
             logLevel: 'error',
             format: 'esm',
-            external: ['postgres', 'ioredis', 'nodemailer', 'dotenv'],
+            external: [
+              ...externals,
+              'node:async_hooks',
+              'async_hooks',
+              'node:buffer',
+              'buffer',
+              'node:assert',
+              'assert',
+              'node:events',
+              'events',
+              'node:path',
+              'path',
+              'node:process',
+              'process',
+              'node:util',
+              'util',
+              'node:string_decoder',
+              'string_decoder',
+              'zugriff:sockets',
+              'cloudflare:sockets',
+              'node:net',
+              'net',
+              'node:tls',
+              'tls',
+              'node:dns',
+              'dns',
+              'node:os',
+              'os',
+              'node:stream',
+              'stream',
+              'node:url',
+              'url',
+              'node:diagnostics_channel',
+              'diagnostics_channel',
+              'node:zlib',
+              'zlib',
+              'node:crypto',
+              'crypto',
+              'node:perf_hooks',
+              'perf_hooks',
+            ],
             banner: { js: 'globalThis.global = globalThis;' },
             entryPoints: [handler],
             outfile: path.join('.zugriff', 'functions', 'index.js'),

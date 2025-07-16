@@ -4,12 +4,14 @@ import * as url from 'node:url';
 import * as esbuild from 'esbuild';
 import type { Builder } from '@sveltejs/kit';
 import SHA3 from 'jssha';
+import { hasDependency } from './util';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 export default function (
   options: {
     build: {
+      externals?: string[];
       disableAutoPuppets?: boolean;
       preprocessors?: {
         puppets?: Record<string, string>;
@@ -135,15 +137,73 @@ export default function (
         })};\n`
       );
 
+      let externals = options.build.externals ?? [];
+
+      if (
+        (await hasDependency('@zugriff/postgres')) == true &&
+        (await hasDependency('postgres')) == false
+      ) {
+        externals.push('postgres');
+      }
+      if (
+        (await hasDependency('@zugriff/redis')) == true &&
+        (await hasDependency('ioredis')) == false
+      ) {
+        externals.push('ioredis');
+      }
+      if (
+        (await hasDependency('@zugriff/mailman')) == true &&
+        (await hasDependency('nodemailer')) == false
+      ) {
+        externals.push('nodemailer');
+      }
+      if ((await hasDependency('@zugriff/env')) == true) {
+        externals.push('dotenv');
+      }
+
       await esbuild.build({
         entryPoints: [path.join(zugriff_tmp_content, 'handler.js')],
         outfile: path.join(zugriff_content, 'functions', 'index.js'),
         external: [
-          'postgres',
-          'ioredis',
-          'nodemailer',
-          'dotenv',
+          ...externals,
           'node:async_hooks',
+          'async_hooks',
+          'node:buffer',
+          'buffer',
+          'node:assert',
+          'assert',
+          'node:events',
+          'events',
+          'node:path',
+          'path',
+          'node:process',
+          'process',
+          'node:util',
+          'util',
+          'node:string_decoder',
+          'string_decoder',
+          'zugriff:sockets',
+          'cloudflare:sockets',
+          'node:net',
+          'net',
+          'node:tls',
+          'tls',
+          'node:dns',
+          'dns',
+          'node:os',
+          'os',
+          'node:stream',
+          'stream',
+          'node:url',
+          'url',
+          'node:diagnostics_channel',
+          'diagnostics_channel',
+          'node:zlib',
+          'zlib',
+          'node:crypto',
+          'crypto',
+          'node:perf_hooks',
+          'perf_hooks',
         ],
         target: 'esnext',
         bundle: true,

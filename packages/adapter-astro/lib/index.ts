@@ -12,7 +12,7 @@ import * as fs from 'fs';
 import {
   createDirIfNotExists,
   discoverFiles,
-  doesFileExist,
+  hasDependency,
   staticRouter,
   writeFile,
 } from '$lib/util';
@@ -21,6 +21,7 @@ import SHA3 from 'jssha';
 export default function createIntegration(
   config: {
     build: {
+      externals?: string[];
       disableAssetsDefaultIndexHTMLRedirect?: boolean;
       preprocessors?: {
         puppets?: Record<string, string>;
@@ -207,15 +208,73 @@ export default function createIntegration(
           const entryUrl = new URL(_config.build.serverEntry, _config.outDir);
           const buildPath = fileURLToPath(entryUrl);
 
+          let externals = config.build.externals ?? [];
+
+          if (
+            (await hasDependency('@zugriff/postgres')) == true &&
+            (await hasDependency('postgres')) == false
+          ) {
+            externals.push('postgres');
+          }
+          if (
+            (await hasDependency('@zugriff/redis')) == true &&
+            (await hasDependency('ioredis')) == false
+          ) {
+            externals.push('ioredis');
+          }
+          if (
+            (await hasDependency('@zugriff/mailman')) == true &&
+            (await hasDependency('nodemailer')) == false
+          ) {
+            externals.push('nodemailer');
+          }
+          if ((await hasDependency('@zugriff/env')) == true) {
+            externals.push('dotenv');
+          }
+
           await esbuild.build({
             target: 'esnext',
             platform: 'browser',
             external: [
-              'postgres',
-              'ioredis',
-              'nodemailer',
-              'dotenv',
+              ...externals,
               'node:async_hooks',
+              'async_hooks',
+              'node:buffer',
+              'buffer',
+              'node:assert',
+              'assert',
+              'node:events',
+              'events',
+              'node:path',
+              'path',
+              'node:process',
+              'process',
+              'node:util',
+              'util',
+              'node:string_decoder',
+              'string_decoder',
+              'zugriff:sockets',
+              'cloudflare:sockets',
+              'node:net',
+              'net',
+              'node:tls',
+              'tls',
+              'node:dns',
+              'dns',
+              'node:os',
+              'os',
+              'node:stream',
+              'stream',
+              'node:url',
+              'url',
+              'node:diagnostics_channel',
+              'diagnostics_channel',
+              'node:zlib',
+              'zlib',
+              'node:crypto',
+              'crypto',
+              'node:perf_hooks',
+              'perf_hooks',
             ],
             entryPoints: [entryPath],
             outfile: buildPath,
