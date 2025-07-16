@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 use once_cell::sync::Lazy;
 use path_absolutize::*;
 use regex::Regex;
@@ -29,8 +29,8 @@ static PATH_SAFE: Lazy<Regex> = Lazy::new(|| Regex::new("[^a-zA-Z0-9]").unwrap()
 
 #[derive(strum_macros::Display, PartialEq, Eq, Debug)]
 pub enum Procedure {
-  #[strum(serialize = "Backup and clean")]
-  CLEAN,
+  // #[strum(serialize = "Backup and clean")]
+  // CLEAN,
   #[strum(serialize = "Overwrite if necessary")]
   OVERWRITE,
 }
@@ -38,7 +38,7 @@ pub enum Procedure {
 impl Procedure {
   fn to_vec() -> Vec<Self> {
     vec![
-      Self::CLEAN,
+      // Self::CLEAN,
       Self::OVERWRITE,
     ]
   }
@@ -76,7 +76,8 @@ pub async fn new(output: Option<String>, typescript: bool, y: bool) -> ExitCode 
 
   if (is_dir || is_file) && !(init && out_dir_file_count == 0) {
     let selection = if y {
-      Procedure::CLEAN
+      // Procedure::CLEAN
+      Procedure::OVERWRITE
     } else {
       let mut procedure = Procedure::to_vec();
 
@@ -95,37 +96,40 @@ pub async fn new(output: Option<String>, typescript: bool, y: bool) -> ExitCode 
     };
 
     match selection {
-      Procedure::CLEAN => {
-        pretty::log(
-          None,
-          &format!(
-            "The {} with the same name will be backed up to \"{}\" before deletion.",
-            out_type,
-            backup.to_string_lossy()
-          ),
-        );
+      // TODO consider danger of moving entire directory
+      // Procedure::CLEAN => {
+      //   pretty::log(
+      //     None,
+      //     &format!(
+      //       "The {} with the same name will be backed up to \"{}\" before deletion.",
+      //       out_type,
+      //       backup.to_string_lossy()
+      //     ),
+      //   );
 
-        if is_dir {
-          archive
-            .append_dir_all(output.file_name().unwrap(), &output)
-            .unwrap();
+      //   if is_dir {
+      //     archive
+      //       .append_dir_all(output.file_name().unwrap(), &output)
+      //       .unwrap();
 
-          remove_dir_all(&output).await.unwrap();
-        } else {
-          archive
-            .append_file(
-              &output.file_name().unwrap(),
-              &mut File::open(&output).unwrap(),
-            )
-            .unwrap();
-          remove_file(&output).await.unwrap();
-        }
+      //     remove_dir_all(&output).await.unwrap();
+      //   } else {
+      //     archive
+      //       .append_file(
+      //         &output.file_name().unwrap(),
+      //         &mut File::open(&output).unwrap(),
+      //       )
+      //       .unwrap();
+      //     remove_file(&output).await.unwrap();
+      //   }
 
-        copy(file.path(), backup.as_path()).await.unwrap();
-      }
+      //   copy(file.path(), backup.as_path()).await.unwrap();
+      // }
       Procedure::OVERWRITE => {
         if is_file {
-          remove_file(&output).await.unwrap()
+          eprintln!("{:?} is a file. Aborting.", &output);
+          return ExitCode::FAILURE;
+          // remove_file(&output).await.unwrap()
         }
       }
     }
