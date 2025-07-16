@@ -1,13 +1,13 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use colored::Colorize as _;
 use flate2::read::GzDecoder;
 use flate2::{Compression, GzBuilder};
 use path_absolutize::Absolutize;
 use serde_json::to_vec;
 use size::Size;
-use std::collections::hash_map::RandomState;
 use std::collections::HashSet;
-use std::fs::{copy, read_to_string, File, OpenOptions};
+use std::collections::hash_map::RandomState;
+use std::fs::{File, OpenOptions, copy, read_to_string};
 use std::hash::{BuildHasher, Hasher};
 use std::io::{Read, Seek, Write};
 use std::str::FromStr;
@@ -18,7 +18,7 @@ use std::{
 };
 use strum::IntoEnumIterator;
 use tar::{Archive, Builder};
-use tempfile::{tempfile, NamedTempFile};
+use tempfile::{NamedTempFile, tempfile};
 use tokio::process::Command;
 use which::which;
 
@@ -28,8 +28,8 @@ use std::os::unix::fs::MetadataExt as _;
 use crate::utils::configuration::{
   Asset, AuthCredentials, ConfigurationFile, DynamicRoute, Guard, Meta, Technology,
 };
-use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use sha3::{Digest, Sha3_384};
 #[cfg(target_family = "windows")]
 use std::os::windows::fs::MetadataExt as _;
@@ -120,6 +120,7 @@ pub async fn shadow(
         let outfile = functions.clone().join(&function_name);
 
         bundle_function(
+          Vec::new(), // dependencies already bundled
           externals.clone(),
           entrypoint.path().into(),
           functions.clone().join(&function_name),
@@ -214,11 +215,37 @@ pub async fn shadow(
     }
   }
 
+  let mut package_json_dependencies = Vec::new();
+  let package_json = base.join("package.json");
+  if package_json.is_file() {
+    if let Ok(package_json) = read_to_string(package_json) {
+      if let Ok(package_json) = serde_json::from_str::<serde_json::Value>(&package_json) {
+        if let Some(dependencies) = package_json.get("dependencies") {
+          if let Some(dependencies) = dependencies.as_object() {
+            package_json_dependencies
+              .extend(dependencies.keys().map(|k| k.to_lowercase()).into_iter());
+            if dependencies.contains_key("hono") {
+              config.meta = Some(Meta {
+                technology: Some(Technology::Hono),
+              })
+            }
+          }
+        }
+      }
+    }
+  }
+
   if let Some(function) = &function {
     let entrypoint = base.join(function);
     let outfile = dot_zugriff.join("functions").join("index.mjs");
 
-    bundle_function(externals, entrypoint.absolutize().unwrap().into(), outfile).await?;
+    bundle_function(
+      package_json_dependencies,
+      externals,
+      entrypoint.absolutize().unwrap().into(),
+      outfile,
+    )
+    .await?;
     config.functions.push(DynamicRoute {
       path: "/index.mjs".into(),
       pattern: "*".into(),
@@ -245,23 +272,6 @@ pub async fn shadow(
     disable_static_router || disable_assets_default_index_html_redirect || function.is_some(),
     guards,
   );
-
-  let package_json = base.join("package.json");
-  if package_json.is_file() {
-    if let Ok(package_json) = read_to_string(package_json) {
-      if let Ok(package_json) = serde_json::from_str::<serde_json::Value>(&package_json) {
-        if let Some(dependencies) = package_json.get("dependencies") {
-          if let Some(dependencies) = dependencies.as_object() {
-            if dependencies.contains_key("hono") {
-              config.meta = Some(Meta {
-                technology: Some(Technology::Hono),
-              })
-            }
-          }
-        }
-      }
-    }
-  }
 
   File::create(dot_zugriff.join("config.json"))?.write_all(&to_vec(&config)?)?;
 
@@ -530,6 +540,7 @@ fn extract_next_worker(base: &PathBuf, pattern: String) -> Result<Vec<(String, P
 }
 
 async fn bundle_function(
+  dependencies: Vec<String>,
   externals: Vec<String>,
   entrypoint: PathBuf,
   outfile: PathBuf,
@@ -543,10 +554,29 @@ async fn bundle_function(
   esbuild.kill_on_drop(true);
   esbuild.arg(entrypoint);
   esbuild.arg("--bundle");
-  esbuild.arg("--external:postgres");
-  esbuild.arg("--external:ioredis");
-  esbuild.arg("--external:nodemailer");
-  esbuild.arg("--external:dotenv");
+
+  if dependencies.contains(&String::from("@zugriff/postgres"))
+    && !dependencies.contains(&String::from("postgres"))
+  {
+    esbuild.arg("--external:postgres");
+  }
+
+  if dependencies.contains(&String::from("@zugriff/redis"))
+    && !dependencies.contains(&String::from("ioredis"))
+  {
+    esbuild.arg("--external:ioredis");
+  }
+
+  if dependencies.contains(&String::from("@zugriff/mailman"))
+    && !dependencies.contains(&String::from("nodemailer"))
+  {
+    esbuild.arg("--external:nodemailer");
+  }
+
+  if dependencies.contains(&String::from("@zugriff/env")) {
+    esbuild.arg("--external:dotenv");
+  }
+
   esbuild.arg("--external:node:async_hooks");
   esbuild.arg("--external:async_hooks");
   esbuild.arg("--external:node:buffer");
@@ -561,7 +591,30 @@ async fn bundle_function(
   esbuild.arg("--external:process");
   esbuild.arg("--external:node:util");
   esbuild.arg("--external:util");
-  // esbuild.arg("--external:node:string_decoder");
+  esbuild.arg("--external:node:string_decoder");
+  esbuild.arg("--external:string_decoder");
+  esbuild.arg("--external:zugriff:sockets");
+  esbuild.arg("--external:cloudflare:sockets");
+  esbuild.arg("--external:node:net");
+  esbuild.arg("--external:net");
+  esbuild.arg("--external:node:tls");
+  esbuild.arg("--external:tls");
+  esbuild.arg("--external:node:dns");
+  esbuild.arg("--external:dns");
+  esbuild.arg("--external:node:os");
+  esbuild.arg("--external:os");
+  esbuild.arg("--external:node:stream");
+  esbuild.arg("--external:stream");
+  esbuild.arg("--external:node:url");
+  esbuild.arg("--external:url");
+  esbuild.arg("--external:node:diagnostics_channel");
+  esbuild.arg("--external:diagnostics_channel");
+  esbuild.arg("--external:node:zlib");
+  esbuild.arg("--external:zlib");
+  esbuild.arg("--external:node:crypto");
+  esbuild.arg("--external:crypto");
+  esbuild.arg("--external:node:perf_hooks");
+  esbuild.arg("--external:perf_hooks");
 
   for external in externals {
     esbuild.arg(format!("--external:{}", external));
