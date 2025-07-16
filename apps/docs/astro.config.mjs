@@ -28,7 +28,11 @@ export default defineConfig({
       sidebar: [
         {
           label: 'Introduction',
-          autogenerate: { directory: 'introduction' },
+          items: [
+            { label: 'About', link: 'introduction/about' },
+            { label: 'Pricing', link: 'https://zugriff.eu/en/#pricing' },
+            { label: 'Sovereignty', link: 'introduction/sovereignty' },
+          ],
         },
         {
           label: 'Guides',
