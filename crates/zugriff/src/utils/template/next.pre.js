@@ -44,8 +44,6 @@ const sharedGlobalProperties = new Set([
   '__incrementalCache',
 ]);
 
-globalThis.LOCAL__zugriff__LocalAsyncStorage_als = new AsyncLocalStorage();
-
 // MIT licensed
 // https://github.com/cloudflare/next-on-pages/blob/2cd4c3c704a00e6b693229f1f14102abc6318d11/packages/next-on-pages/src/buildApplication/generateGlobalJs.ts#L14C9-L14C26
 
