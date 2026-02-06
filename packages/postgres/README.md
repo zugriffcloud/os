@@ -41,7 +41,7 @@ await client.execute`
 // Insert a user
 await client.execute`
   INSERT INTO users (name, age, misc)
-    VALUES (${'Luca'}, ${1}, ${{ hello: 'world' }})
+    VALUES (${'zugriff'}, ${1}, ${{ hello: 'world' }})
 `;
 ```
 
@@ -56,8 +56,8 @@ let user = client.query<{
   SELECT name, age, misc
   FROM users
   WHERE
-    name=${'Luca'}
+    name=${'zugriff'}
 `;
 
-// { anchor: "id", success: [{name: "Luca", age: 1, misc: { hello: "world" }}] }
+// { anchor: "id", success: [{name: "zugriff", age: 1, misc: { hello: "world" }}] }
 ```

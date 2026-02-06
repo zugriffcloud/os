@@ -51,7 +51,7 @@ describe('database calls', async () => {
         created TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         name VARCHAR(256),
         age INTEGER,
-        married BOOLEAN,
+        human BOOLEAN,
         misc JSON
       )
     `;
@@ -59,7 +59,7 @@ describe('database calls', async () => {
 
   it('adds a user', async () => {
     expect(
-      await client.execute`INSERT INTO users (name, age, married, misc) VALUES (${'Luca'}, ${1}, ${false}, ${{ likesSQL: true }})`
+      await client.execute`INSERT INTO users (name, age, human, misc) VALUES (${'Max Mustermann'}, ${1}, ${true}, ${{ likesSQL: true }})`
     ).toMatchObject({
       data: [],
     });
@@ -70,12 +70,17 @@ describe('database calls', async () => {
       await client.query<{
         name: string;
         age: number;
-        married: boolean;
+        human: boolean;
         misc: NonNullable<unknown>;
-      }>`SELECT name, age, married, misc FROM users WHERE name=${'Luca'}`
+      }>`SELECT name, age, human, misc FROM users WHERE name=${'Max Mustermann'}`
     ).toMatchObject({
       data: [
-        { name: 'Luca', age: 1, married: false, misc: { likesSQL: true } },
+        {
+          name: 'Max Mustermann',
+          age: 1,
+          human: true,
+          misc: { likesSQL: true },
+        },
       ],
     });
   });
