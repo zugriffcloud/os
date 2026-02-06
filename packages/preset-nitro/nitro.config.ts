@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import type { NitroPreset } from 'nitropack';
 
 let technology = 'Nitro';
+let packageJson: object;
 
 try {
   fs.accessSync('nuxt.config.ts', fs.constants.R_OK);
@@ -119,7 +120,6 @@ export default <NitroPreset>{
           preprocessors: {
             puppets: {},
             redirects: [],
-            guards: [],
           },
           postprocessors: {
             interceptors: [],
@@ -153,7 +153,7 @@ function discoverFiles(basePath: string, clean = true): Array<string> {
   return files;
 }
 
-export function doesFileExist(location) {
+export function isFile(location: string) {
   try {
     let stats = fs.lstatSync(location);
     return stats.isFile();
@@ -162,38 +162,20 @@ export function doesFileExist(location) {
   }
 }
 
-let packageJson: object;
-
 export function hasDependency(dependency: string) {
   if (packageJson) {
-    if (
+    return (
       'dependencies' in packageJson &&
       typeof packageJson.dependencies == 'object' &&
+      packageJson.dependencies !== null &&
       dependency in packageJson.dependencies
-    ) {
-      return true;
-    } else {
-      return false;
-    }
+    );
   }
 
-  if (doesFileExist('package.json')) {
-    try {
-      let data = fs.readFileSync('package.json');
-      let value = JSON.parse(data.toString());
-      packageJson = value;
-      if (
-        'dependencies' in value &&
-        typeof value.dependencies == 'object' &&
-        dependency in value.dependencies
-      ) {
-        return true;
-      } else {
-        return false;
-      }
-    } catch (_) {
-      return 'unknown';
-    }
+  if (isFile('package.json')) {
+    let data = fs.readFileSync('package.json');
+    packageJson = JSON.parse(data.toString());
+    return hasDependency(dependency);
   }
 
   return 'unknown';

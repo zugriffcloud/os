@@ -25,12 +25,7 @@ use which::which;
 #[cfg(target_family = "unix")]
 use std::os::unix::fs::MetadataExt as _;
 
-use crate::utils::configuration::{
-  Asset, AuthCredentials, ConfigurationFile, DynamicRoute, Guard, Meta, Technology,
-};
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
-use sha3::{Digest, Sha3_384};
+use crate::utils::configuration::{Asset, ConfigurationFile, DynamicRoute, Meta, Technology};
 #[cfg(target_family = "windows")]
 use std::os::windows::fs::MetadataExt as _;
 
@@ -48,14 +43,12 @@ pub async fn shadow(
   assets_flag: Vec<String>,
   puppets_flag: Vec<String>,
   redirects_flag: Vec<String>,
-  disable_assets_default_index_html_redirect: bool,
-  interceptors_flag: Vec<String>,
+  mut interceptors_flag: Vec<String>,
   prefer_file_router: bool,
   prefer_puppets: bool,
   enable_static_router: bool,
   disable_static_router: bool,
   disable_function_discovery: bool,
-  guards: Vec<String>,
   asset_cache_control: Vec<String>,
 ) -> anyhow::Result<PathBuf> {
   let current = env::current_dir()?;
@@ -175,6 +168,14 @@ pub async fn shadow(
 
     attach_asset_cache_control(&mut config, asset_cache_control);
 
+    if config.assets.contains(&Asset::Simple("/404.html".into())) {
+      interceptors_flag.push("404:GET:/404.html".into());
+    }
+
+    if config.assets.contains(&Asset::Simple("/500.html".into())) {
+      interceptors_flag.push("500:GET:/500.html".into());
+    }
+
     attach_middleware(
       &mut config,
       interceptors_flag,
@@ -183,8 +184,7 @@ pub async fn shadow(
       prefer_file_router,
       prefer_puppets,
       enable_static_router,
-      disable_static_router || disable_assets_default_index_html_redirect,
-      guards,
+      disable_static_router,
     );
 
     File::create(dot_zugriff.join("config.json"))?.write_all(&to_vec(&config)?)?;
@@ -269,8 +269,7 @@ pub async fn shadow(
     prefer_file_router,
     prefer_puppets,
     enable_static_router,
-    disable_static_router || disable_assets_default_index_html_redirect || function.is_some(),
-    guards,
+    disable_static_router || function.is_some(),
   );
 
   File::create(dot_zugriff.join("config.json"))?.write_all(&to_vec(&config)?)?;
@@ -411,20 +410,6 @@ pub fn report(compressed: &mut File) {
     );
   }
 
-  for guard in manifest.preprocessors.guards {
-    has_middleware = true;
-    for pattern in guard.patterns {
-      println!(
-        "Basic Auth{} → {} (Guard)",
-        match guard.credentials.password.is_some() {
-          true => "",
-          false => " (Passwordless)",
-        },
-        pattern
-      );
-    }
-  }
-
   if !has_middleware {
     println!("-");
   }
@@ -440,7 +425,7 @@ fn attach_assets(
   config: &mut ConfigurationFile,
 ) -> Result<()> {
   for asset in assets_flag {
-    for (file, relative) in discover_files(&base.join(asset).canonicalize().unwrap(), "/", false) {
+    for (file, relative) in discover_files(&base.join(&asset).canonicalize().unwrap(), "/", false) {
       let destination = destination.clone().join(&relative.trim_start_matches('/'));
 
       if let Some(parent) = destination.parent() {
@@ -647,33 +632,40 @@ pub fn attach_asset_cache_control(
         let mut remove = None;
         for (index, asset) in config.assets.iter_mut().enumerate() {
           match asset {
-            Asset::Simple(_) => {
-              remove = Some(index);
-              break;
+            Asset::Simple(simple_path) => {
+              if simple_path.as_str() == path {
+                remove = Some(index);
+                break;
+              }
             }
-            Asset::Advanced { cache_control, .. } => {
-              *cache_control = value.to_string();
-              break;
+            Asset::Advanced {
+              cache_control,
+              path: advanced_path,
+            } => {
+              if advanced_path.as_str() == path {
+                *cache_control = value.to_string();
+                break;
+              }
             }
           }
         }
 
-        match remove {
-          Some(index) => {
-            config.assets.remove(index);
-            config.assets.push(Asset::Advanced {
-              path,
-              cache_control: value,
-            });
-          }
-          None => pretty::log(
-            Some(pretty::Status::WARNING),
-            &format!(
-              "Unable to locate asset \"{}\" to customise Cache-Control header",
-              path
-            ),
-          ),
+        if let Some(index) = remove {
+          config.assets.remove(index);
+          config.assets.push(Asset::Advanced {
+            path,
+            cache_control: value,
+          });
+          continue;
         }
+
+        pretty::log(
+          Some(pretty::Status::WARNING),
+          &format!(
+            "Unable to locate asset \"{}\" to customise Cache-Control header",
+            path
+          ),
+        );
       }
       None => pretty::log(
         Some(pretty::Status::WARNING),
@@ -692,7 +684,6 @@ pub fn attach_middleware(
   prefer_puppets: bool,
   enable_static_router: bool,
   disable_static_router: bool,
-  guards: Vec<String>,
 ) {
   let mut index_index = Vec::new();
 
@@ -916,59 +907,6 @@ pub fn attach_middleware(
     .postprocessors
     .interceptors
     .extend(_interceptors.into_iter());
-
-  let mut _guards = Vec::new();
-
-  for guard in guards {
-    let mut tmpl = Guard {
-      credentials: Default::default(),
-      scheme: Default::default(),
-      patterns: vec![],
-    };
-
-    fn hash_credentials(username: String, password: String) -> AuthCredentials {
-      let username = Sha3_384::digest(username.as_bytes());
-      let username = BASE64_STANDARD.encode(&username);
-
-      let password = match password.as_str() {
-        "" => None,
-        password => {
-          let password = Sha3_384::digest(password.as_bytes());
-          let password = BASE64_STANDARD.encode(&password);
-
-          Some(password)
-        }
-      };
-
-      AuthCredentials { username, password }
-    }
-
-    match split_args_basic(&guard) {
-      Some((username, password)) => match split_args_basic(&password) {
-        Some((password, mut path)) => {
-          tmpl.credentials = hash_credentials(username, password);
-
-          if !path.ends_with('*') && !path.ends_with('/') {
-            path.push('/');
-          }
-
-          tmpl.patterns.push(path);
-        }
-        None => {
-          tmpl.credentials = hash_credentials(username, password);
-          tmpl.patterns.push("*".to_string());
-        }
-      },
-      None => pretty::log(
-        Some(pretty::Status::WARNING),
-        &format!("Unable to process guard \"{}\"", guard),
-      ),
-    };
-
-    _guards.push(tmpl);
-  }
-
-  config.preprocessors.guards.extend(_guards);
 }
 
 fn split_args(input: &str) -> Option<(String, String)> {

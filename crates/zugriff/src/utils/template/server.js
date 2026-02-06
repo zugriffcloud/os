@@ -5,7 +5,6 @@ import * as net from 'node:net';
 import * as util from 'node:util';
 import * as process from 'node:process';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { sha3_384_b64 } from '<sha3.min.js>';
 
 globalThis.AsyncLocalStorage = AsyncLocalStorage;
 globalThis.self = globalThis;
@@ -126,61 +125,6 @@ const server = http.createServer(async (req, res) => {
     .replace(/\/*$/, '')
     .replace(/(\?.*)$/, '')
     .replace(/(#.*)$/, '');
-
-  let guards = config.guards || config.preprocessors?.guards || [];
-  if (guards.length > 0) {
-    let auth_required = false;
-    let guarded = false;
-
-    function extractCredentials(authorization) {
-      if (
-        !authorization ||
-        authorization.length === 0 ||
-        !authorization.startsWith('Basic ')
-      ) {
-        return undefined;
-      } else {
-        authorization = authorization.slice('Basic '.length);
-        authorization = Buffer.from(authorization, 'base64').toString();
-        let [username, password] = authorization.split(':');
-
-        return {
-          username: sha3_384_b64(username),
-          password:
-            password && password.length !== 0
-              ? sha3_384_b64(password)
-              : undefined,
-        };
-      }
-    }
-    let authorization = extractCredentials(req.headers.authorization);
-
-    for (let guard of config.guards || config.preprocessors?.guards || []) {
-      for (let pattern of guard.patterns) {
-        if (matchPattern(pattern, tempPath)) {
-          auth_required = true;
-          guarded =
-            guard.credentials.username == authorization?.username &&
-            guard.credentials.password == (authorization?.password || null);
-          if (guarded) {
-            break;
-          }
-        }
-      }
-
-      if (guarded) {
-        break;
-      }
-    }
-
-    if (auth_required && !guarded) {
-      res.writeHead(401, {
-        'WWW-Authenticate': 'Basic',
-      });
-      res.end();
-      return;
-    }
-  }
 
   // * Handle static content
 

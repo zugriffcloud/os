@@ -5,7 +5,7 @@ use hotwatch::Hotwatch;
 use signal_hook::low_level;
 use std::{
   env,
-  fs::{copy, remove_dir_all, File},
+  fs::{File, copy, remove_dir_all},
   io::Write,
   path::{Path, PathBuf},
   process::ExitCode,
@@ -15,11 +15,10 @@ use tempfile::TempDir;
 use tokio::{process::Command, sync::mpsc, task::JoinSet};
 use which::which;
 
-use path_absolutize::Absolutize;
 use crate::utils::{dependencies::NODE_ZUGRIFF, pack::shadow, pretty, task::Pure};
+use path_absolutize::Absolutize;
 
 static SERVER: &'static str = include_str!("../utils/template/server.js");
-static SHA3MINJS: &'static str = include_str!("../utils/template/sha3.min.js");
 
 pub async fn run(
   cwd: Option<String>,
@@ -28,7 +27,6 @@ pub async fn run(
   puppets: Vec<String>,
   redirects: Vec<String>,
   watch: bool,
-  disable_assets_default_index_html_redirect: bool,
   pack: bool,
   address: Option<String>,
   interceptors: Vec<String>,
@@ -37,7 +35,6 @@ pub async fn run(
   enable_static_router: bool,
   disable_static_router: bool,
   disable_function_discovery: bool,
-  guards: Vec<String>,
   asset_cache_control: Vec<String>,
 ) -> ExitCode {
   let base = match cwd.clone() {
@@ -78,31 +75,28 @@ pub async fn run(
     let _assets = assets.clone();
     let _function = function.clone();
     let _interceptors = interceptors.clone();
-    let _guards = guards.clone();
     let _asset_cache_control = asset_cache_control.clone();
     set.spawn(async move {
       macro_rules! handle {
-          () => {
-            Pure::new(tokio::spawn(setup(
-              _base.clone(),
-              cwd.clone(),
-              _function.clone(),
-              _assets.clone(),
-              puppets.clone(),
-              redirects.clone(),
-              disable_assets_default_index_html_redirect,
-              pack,
-              address.clone(),
-              _interceptors.clone(),
-              prefer_file_router,
-              prefer_puppets,
-              enable_static_router,
-              disable_static_router,
-              disable_function_discovery,
-              guards.clone(),
-              asset_cache_control.clone(),
-            )))
-          };
+        () => {
+          Pure::new(tokio::spawn(setup(
+            _base.clone(),
+            cwd.clone(),
+            _function.clone(),
+            _assets.clone(),
+            puppets.clone(),
+            redirects.clone(),
+            pack,
+            address.clone(),
+            _interceptors.clone(),
+            prefer_file_router,
+            prefer_puppets,
+            enable_static_router,
+            disable_static_router,
+            disable_function_discovery,
+            asset_cache_control.clone(),
+          )))
+        };
       }
 
       let mut handle = handle!();
@@ -184,7 +178,6 @@ pub async fn run(
       assets,
       puppets,
       redirects,
-      disable_assets_default_index_html_redirect,
       pack,
       address.clone(),
       interceptors.clone(),
@@ -193,8 +186,7 @@ pub async fn run(
       enable_static_router,
       disable_static_router,
       disable_function_discovery,
-      guards,
-      asset_cache_control
+      asset_cache_control,
     )
     .await;
   }
@@ -209,7 +201,6 @@ async fn setup(
   assets: Vec<String>,
   puppets: Vec<String>,
   redirects: Vec<String>,
-  disable_assets_default_index_html_redirect: bool,
   pack: bool,
   address: Option<String>,
   interceptors: Vec<String>,
@@ -218,7 +209,6 @@ async fn setup(
   enable_static_router: bool,
   disable_static_router: bool,
   disable_function_discovery: bool,
-  guards: Vec<String>,
   asset_cache_control: Vec<String>,
 ) {
   let tempdir = TempDir::new().unwrap();
@@ -276,15 +266,13 @@ async fn setup(
       assets,
       puppets,
       redirects,
-      disable_assets_default_index_html_redirect,
       interceptors,
       prefer_file_router,
       prefer_puppets,
       enable_static_router,
       disable_static_router,
       disable_function_discovery,
-      guards,
-      asset_cache_control
+      asset_cache_control,
     )
     .await
     {
@@ -298,9 +286,6 @@ async fn setup(
     base.join(".zugriff")
   };
 
-  let sha3 = tempdir.path().join("sha3.min.mjs");
-  File::create(&sha3).unwrap().write_all(SHA3MINJS.as_bytes()).unwrap();
-
   let server = tempdir.path().join("server.mjs");
   File::create(&server)
     .unwrap()
@@ -308,7 +293,6 @@ async fn setup(
       SERVER
         .replace("<DEBUG>", &env::var("DEBUG").is_ok().to_string())
         .replace("<BASEDIR>", &base.to_str().unwrap().replace('\\', "\\\\"))
-        .replace("<sha3.min.js>", &normalise_path_for_node(sha3))
         .replace(
           "<DOT_ZUGRIFF>",
           &dot_zugriff.to_str().unwrap().replace('\\', "\\\\"),
@@ -327,19 +311,4 @@ async fn setup(
   node.arg(server.absolutize().unwrap().as_os_str().to_str().unwrap());
 
   node.spawn().unwrap().wait().await.unwrap();
-}
-
-fn normalise_path_for_node(path: PathBuf) -> String {
-  let mut path = path.to_str().unwrap().replace('\\', "\\\\");
-
-  #[cfg(target_os = "windows")]
-  {
-    use typed_path::{Utf8Path, Utf8UnixEncoding, Utf8WindowsEncoding};
-    let t = Utf8Path::<Utf8WindowsEncoding>::new(&path);
-    let t = t.with_encoding::<Utf8UnixEncoding>();
-
-    path = t.to_string();
-  }
-
-  path
 }

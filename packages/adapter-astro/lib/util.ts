@@ -54,61 +54,32 @@ export function staticRouter(
   return routes;
 }
 
-export async function doesFileExist(location) {
-  let resolver;
-  let exists: Promise<boolean> = new Promise((resolve) => (resolver = resolve));
-  fs.lstat(location, (err, stats) => {
-    if (err || !stats.isFile()) {
-      return resolver(false);
-    }
-    resolver(true);
-  });
-
-  return await exists;
+export async function isFile(location): Promise<boolean> {
+  try {
+    const stat = await fs.promises.stat(location);
+    return stat.isFile();
+  } catch (_) {
+    return false;
+  }
 }
 
 let packageJson: object;
 
 export async function hasDependency(dependency: string) {
-  let resolver;
-  let has: Promise<boolean | 'unknown'> = new Promise(
-    (resolve) => (resolver = resolve)
-  );
-
   if (packageJson) {
-    if (
+    return (
       'dependencies' in packageJson &&
       typeof packageJson.dependencies == 'object' &&
+      packageJson.dependencies !== null &&
       dependency in packageJson.dependencies
-    ) {
-      resolver(true);
-    } else {
-      resolver(false);
-    }
-
-    return await has;
+    );
   }
 
-  if (await doesFileExist('package.json')) {
-    fs.readFile('package.json', (err, data) => {
-      if (err) return resolver('unknown');
-
-      try {
-        let value = JSON.parse(data.toString());
-        if (
-          'dependencies' in value &&
-          typeof value.dependencies == 'object' &&
-          dependency in value.dependencies
-        ) {
-          resolver(true);
-        } else {
-          resolver(false);
-        }
-      } catch (_) {
-        resolver('unknown');
-      }
-    });
+  if (await isFile('package.json')) {
+    const data = await fs.promises.readFile('package.json');
+    packageJson = JSON.parse(data.toString());
+    return hasDependency(dependency);
   }
 
-  return await has;
+  return 'unknown';
 }

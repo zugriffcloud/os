@@ -18,7 +18,20 @@ mod utils;
 extern crate log;
 
 #[derive(Subcommand, Debug, Clone)]
+pub enum Create {
+  Hono {
+    /// Project location (e.g. "./my-app/")
+    #[arg(value_enum)]
+    output: String,
+
+    #[arg(long)]
+    typescript: bool,
+  },
+}
+
+#[derive(Subcommand, Debug, Clone)]
 pub enum Actions {
+  /// Preview your application
   Preview {
     /// Change current working directory (e.g. "./my-app/")
     #[arg(long)]
@@ -56,10 +69,6 @@ pub enum Actions {
     #[arg(short, long)]
     intercept: Vec<String>,
 
-    /// [DEPRECATED: use --disableStaticRouter] Default: If no function is found, redirect rules for "index.x?html?" files are created (e.g. "/" -308-> "/index.html")
-    #[arg(long = "disableDefaultIndexHTMLRedirect")]
-    disable_assets_default_index_html_redirect: bool,
-
     /// Disables the auto-router for static-only deployments
     #[arg(long = "disableStaticRouter")]
     disable_static_router: bool,
@@ -80,26 +89,14 @@ pub enum Actions {
     #[arg(long = "disableFunctionDiscovery")]
     disable_function_discovery: bool,
 
-    /// Protect paths with basic access authentication (e.g. "user:pass" or "user:pass:/secrets.txt")
-    #[arg(short, long)]
-    guard: Vec<String>,
-
     /// Apply custom Cache-Control headers to assets ("no-cache", "no-store" and "max-age=n" are supported, e.g. "no-cache:/main-menu.pdf")
     #[arg(long = "assetCacheControl")]
     asset_cache_control: Vec<String>,
   },
-  New {
-    /// Project location (e.g. "./my-app/")
-    #[arg(value_enum)]
-    output: String,
-
-    #[arg(long)]
-    typescript: bool,
-  },
-  Init {
-    #[arg(long)]
-    typescript: bool,
-  },
+  /// Create a new application
+  #[command(subcommand)]
+  Create(Create),
+  /// Deploy your application
   Deploy {
     /// Token to deploy and manage applications
     #[clap(long = "deploymentToken", env = "ZUGRIFF_CLI_DEPLOYMENT_TOKEN")]
@@ -116,10 +113,6 @@ pub enum Actions {
     /// Location of static asset(-s) to include
     #[arg(short, long)]
     asset: Vec<String>,
-
-    /// [DEPRECATED: use --promote] Domain accociated labels (e.g. "production")
-    #[arg(long)]
-    promotion: Vec<String>,
 
     /// Domain accociated labels (e.g. "production")
     #[arg(short, long)]
@@ -157,10 +150,6 @@ pub enum Actions {
     #[arg(long)]
     pack: bool,
 
-    /// [DEPRECATED: use --disableStaticRouter] Default: If no function is found, redirect rules for "index.x?html?" files are created (e.g. "/" -308-> "/index.html")
-    #[arg(long = "disableDefaultIndexHTMLRedirect")]
-    disable_assets_default_index_html_redirect: bool,
-
     /// Disables the auto-router for static-only deployments
     #[arg(long = "disableStaticRouter")]
     disable_static_router: bool,
@@ -180,10 +169,6 @@ pub enum Actions {
     /// Disable function discovery
     #[arg(long = "disableFunctionDiscovery")]
     disable_function_discovery: bool,
-
-    /// Protect paths with basic access authentication (e.g. "user:pass" or "user:pass:/secrets.txt")
-    #[arg(short, long)]
-    guard: Vec<String>,
 
     /// Apply custom Cache-Control headers to assets ("no-cache", "no-store" and "max-age=n" are supported, e.g. "no-cache:/main-menu.pdf")
     #[arg(long = "assetCacheControl")]
@@ -223,10 +208,6 @@ pub enum Actions {
     #[arg(short, long)]
     intercept: Vec<String>,
 
-    /// [DEPRECATED: use --disableStaticRouter] Default: If no function is found, redirect rules for "index.x?html?" files are created (e.g. "/" -308-> "/index.html")
-    #[arg(long = "disableDefaultIndexHTMLRedirect")]
-    disable_assets_default_index_html_redirect: bool,
-
     /// Disables the auto-router for static-only deployments
     #[arg(long = "disableStaticRouter")]
     disable_static_router: bool,
@@ -247,16 +228,13 @@ pub enum Actions {
     #[arg(long = "disableFunctionDiscovery")]
     disable_function_discovery: bool,
 
-    /// Protect paths with basic access authentication (e.g. "user:pass" or "user:pass:/secrets.txt")
-    #[arg(short, long)]
-    guard: Vec<String>,
-
     /// Apply custom Cache-Control headers to assets ("no-cache", "no-store" and "max-age=n" are supported, e.g. "no-cache:/main-menu.pdf")
     #[arg(long = "assetCacheControl")]
     asset_cache_control: Vec<String>,
   },
   Uninstall,
   #[command(subcommand)]
+  /// Manage your local environment
   Environment(EnvironmentAction),
 }
 
@@ -302,9 +280,6 @@ pub static AUTHORS: &'static str = "Luca Goslar <luca.goslar@zugriff.eu>";
 #[command(version = env!("CARGO_PKG_VERSION"))]
 #[command(about = "CLI to interact with the zugriff API.", long_about = None)]
 pub struct Args {
-  /// Token to manage account
-  #[clap(short, long = "accountToken", env = "ZUGRIFF_CLI_ACCOUNT_TOKEN")]
-  pub account_token: Option<String>,
   #[command(subcommand)]
   pub action: Actions,
   #[clap(short, long = "yes")]
@@ -382,8 +357,9 @@ async fn main() -> ExitCode {
   utils::dependencies::install(&args).await;
 
   match args.action {
-    Actions::New { output, typescript } => actions::new(Some(output), typescript, args.y).await,
-    Actions::Init { typescript } => actions::new(None, typescript, args.y).await,
+    Actions::Create(Create::Hono { output, typescript }) => {
+      actions::new(Some(output), typescript, args.y).await
+    }
     Actions::Preview {
       cwd,
       function,
@@ -391,7 +367,6 @@ async fn main() -> ExitCode {
       watch,
       puppet,
       redirect,
-      disable_assets_default_index_html_redirect,
       enable_static_router,
       disable_static_router,
       pack,
@@ -400,15 +375,8 @@ async fn main() -> ExitCode {
       prefer_file_router,
       prefer_puppets,
       disable_function_discovery,
-      guard,
-      asset_cache_control
+      asset_cache_control,
     } => {
-      if disable_assets_default_index_html_redirect {
-        println!(
-          "`--disableDefaultIndexHTMLRedirect` is deprecated - please use `--disableStaticRouter`"
-        );
-      }
-
       actions::run(
         cwd,
         function,
@@ -416,7 +384,6 @@ async fn main() -> ExitCode {
         puppet,
         redirect,
         watch,
-        disable_assets_default_index_html_redirect,
         pack,
         address,
         intercept,
@@ -425,8 +392,7 @@ async fn main() -> ExitCode {
         enable_static_router,
         disable_static_router,
         disable_function_discovery,
-        guard,
-        asset_cache_control
+        asset_cache_control,
       )
       .await
     }
@@ -434,7 +400,6 @@ async fn main() -> ExitCode {
       cwd,
       function,
       asset,
-      promotion,
       promote,
       name,
       description,
@@ -443,7 +408,6 @@ async fn main() -> ExitCode {
       external,
       puppet,
       redirect,
-      disable_assets_default_index_html_redirect,
       enable_static_router,
       disable_static_router,
       pack,
@@ -451,35 +415,20 @@ async fn main() -> ExitCode {
       prefer_file_router,
       prefer_puppets,
       disable_function_discovery,
-      guard,
       asset_cache_control,
     } => {
-      if promotion.len() > 1 {
-        println!("`--promotion` is deprecated - please use `--promote`");
-      }
-
-      if disable_assets_default_index_html_redirect {
-        println!(
-          "`--disableDefaultIndexHTMLRedirect` is deprecated - please use `--disableStaticRouter`"
-        );
-      }
-
       actions::deploy(
         cwd,
         deployment_token,
         function,
         asset,
-        [
-          promote, promotion,
-        ]
-        .concat(),
+        promote,
         name,
         description,
         dry_run,
         external,
         puppet,
         redirect,
-        disable_assets_default_index_html_redirect,
         pack,
         intercept,
         prefer_file_router,
@@ -487,7 +436,6 @@ async fn main() -> ExitCode {
         enable_static_router,
         disable_static_router,
         disable_function_discovery,
-        guard,
         asset_cache_control,
       )
       .await
@@ -501,22 +449,14 @@ async fn main() -> ExitCode {
       external,
       puppet,
       redirect,
-      disable_assets_default_index_html_redirect,
       enable_static_router,
       disable_static_router,
       intercept,
       prefer_file_router,
       prefer_puppets,
       disable_function_discovery,
-      guard,
-      asset_cache_control
+      asset_cache_control,
     } => {
-      if disable_assets_default_index_html_redirect {
-        println!(
-          "`--disableDefaultIndexHTMLRedirect` is deprecated - please use `--disableStaticRouter`"
-        );
-      }
-
       actions::pack(
         cwd,
         function,
@@ -525,15 +465,13 @@ async fn main() -> ExitCode {
         external,
         puppet,
         redirect,
-        disable_assets_default_index_html_redirect,
         intercept,
         prefer_file_router,
         prefer_puppets,
         enable_static_router,
         disable_static_router,
         disable_function_discovery,
-        guard,
-        asset_cache_control
+        asset_cache_control,
       )
       .await
     }

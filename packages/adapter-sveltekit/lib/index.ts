@@ -3,7 +3,6 @@ import * as path from 'node:path';
 import * as url from 'node:url';
 import * as esbuild from 'esbuild';
 import type { Builder } from '@sveltejs/kit';
-import SHA3 from 'jssha';
 import { hasDependency } from './util';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
@@ -16,11 +15,6 @@ export default function (
       preprocessors?: {
         puppets?: Record<string, string>;
         redirects?: Array<{ path: string; location: string; status: number }>;
-        guards?: Array<{
-          credentials: { username: string; password: string | null };
-          scheme: 'basic';
-          patterns: Array<string>;
-        }>;
       };
       postprocessors?: {
         interceptors?: Array<{
@@ -44,20 +38,6 @@ export default function (
   return {
     name: '@zugriff/adapter-sveltekit',
     async adapt(builder: Builder) {
-      const guards =
-        options.build.preprocessors?.guards?.map((guard) => {
-          guard.credentials.username = new SHA3('SHA3-384', 'TEXT')
-            .update(guard.credentials.username)
-            .getHash('B64');
-          if (guard.credentials.password) {
-            guard.credentials.password = new SHA3('SHA3-384', 'TEXT')
-              .update(guard.credentials.password)
-              .getHash('B64');
-          }
-
-          return guard;
-        }) || [];
-
       const zugriff_content = '.zugriff';
       const zugriff_tmp_content = builder.getBuildDirectory('.zugriff_tmp');
 
@@ -226,7 +206,6 @@ export default function (
           preprocessors: {
             puppets,
             redirects,
-            guards,
           },
           postprocessors: {
             interceptors: options.build.postprocessors?.interceptors || [],

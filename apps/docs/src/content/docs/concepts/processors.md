@@ -6,8 +6,8 @@ title: 'Pre- And Postprocessors'
 Defining pre- and postprocessors might make migrating to another hosting provider more challenging.
 :::
 
-To throw more efficient redirects or access a specific static asset from an alias, rules can be set up
-within the configuration file of your deployment.
+To throw more efficient redirects or access a specific static asset through an alias, adjust the
+configuration of your deployment.
 
 ## Preprocessors
 
@@ -53,40 +53,13 @@ Traditional redirects can be configured as follows.
 zugriff deploy ... --redirect /:308:/index.html
 ```
 
-### Guards
-
-Guards protect both your functions and assets from unauthorised access.
-Find information on pattern matching [here](/reference/deployment-architecture#patterns).
-
-```json
-{
-  ...
-  "preprocessors": {
-    "guards": [
-      {
-        "credentials": {
-          "username": "SHA3-384 Base64 encoded value",
-          "password": "SHA3-384 Base64 encoded value (nullable)"
-        },
-        "scheme": "basic",
-        "patterns": ["*"]
-      }
-    ]
-  }
-}
-```
-
-```sh
-zugriff deploy ... --guard user:pass
-```
-
 ## Postprocessors
 
 ### Interceptors
 
-Similar to puppets, interceptors resolve to a static asset. In contrast to puppets, interceptors run after
-resolving puppets and static assets, redirects and functions and only apply to requests with a dynamic
-response. (e.g. unspecified static assets and function responses)
+Similar to puppets, interceptors resolve to a static asset. In contrast to puppets, interceptors run
+after resolving puppets, static assets, redirects, and functions, and apply only to requests with a
+dynamic response. (e.g. unspecified static assets and function responses)
 
 ```json
 {

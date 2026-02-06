@@ -133,44 +133,12 @@ impl FromStr for Method {
   }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub enum AuthScheme {
-  Basic,
-}
-
-impl Default for AuthScheme {
-  fn default() -> Self {
-    Self::Basic
-  }
-}
-
-#[derive(Deserialize, Serialize, Validate, Debug, Default, Clone)]
-pub struct AuthCredentials {
-  #[garde(length(min = 64, max = 64))]
-  pub username: String,
-  #[garde(length(min = 64, max = 64))]
-  pub password: Option<String>,
-}
-
-#[derive(Deserialize, Serialize, Validate, Debug, Default, Clone)]
-pub struct Guard {
-  #[garde(dive)]
-  pub credentials: AuthCredentials,
-  #[garde(skip)]
-  pub scheme: AuthScheme,
-  #[garde(length(max = 10), inner(length(max = 350)))]
-  pub patterns: Vec<String>,
-}
-
 #[derive(Deserialize, Serialize, Validate, Debug, Default, Clone)]
 pub struct Preprocessors {
   #[garde(custom(validate_puppets), length(max = 150))]
   pub puppets: HashMap<String, String>,
   #[garde(dive, length(max = 150))]
   pub redirects: Vec<Redirect>,
-  #[garde(dive, length(max = 10))]
-  pub guards: Vec<Guard>,
 }
 
 #[derive(Deserialize, Serialize, Validate, Debug, Default, Clone)]
@@ -279,7 +247,6 @@ impl From<Legacy1ConfigurationFile> for ConfigurationFile {
       preprocessors: Preprocessors {
         puppets: legacy_configuration_file.puppets,
         redirects: legacy_configuration_file.redirects,
-        guards: Vec::new(),
       },
       postprocessors: Postprocessors {
         interceptors: legacy_configuration_file.interceptors.unwrap_or(Vec::new()),

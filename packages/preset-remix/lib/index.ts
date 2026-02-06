@@ -3,13 +3,7 @@ import * as fs from 'node:fs';
 
 import * as esbuild from 'esbuild';
 import type { Preset } from '@remix-run/dev';
-import SHA3 from 'jssha';
-import {
-  discoverFiles,
-  doesFileExist,
-  hasDependency,
-  staticRouter,
-} from '$lib/util';
+import { discoverFiles, isFile, hasDependency, staticRouter } from '$lib/util';
 
 let entryServer: string;
 
@@ -26,11 +20,6 @@ export default function zugriff(
       preprocessors?: {
         puppets?: Record<string, string>;
         redirects?: Array<{ path: string; location: string; status: number }>;
-        guards?: Array<{
-          credentials: { username: string; password: string | null };
-          scheme: 'basic';
-          patterns: Array<string>;
-        }>;
       };
       postprocessors?: {
         interceptors?: Array<{
@@ -78,7 +67,7 @@ export default function zugriff(
         );
 
         let source = path.join(path.dirname(__filename), 'entry.server.tsx');
-        if (await doesFileExist(entryClientJSX)) {
+        if (await isFile(entryClientJSX)) {
           source = path.join(path.dirname(__filename), 'entry.server.jsx');
           entryServer = path.join(
             config.remixConfig.appDirectory,
@@ -87,7 +76,7 @@ export default function zugriff(
         }
 
         if (
-          !(await doesFileExist(entryServer)) &&
+          !(await isFile(entryServer)) &&
           !options.disableEntryServerCreation
         ) {
           fs.copyFileSync(source, entryServer);
@@ -105,7 +94,7 @@ export default function zugriff(
             'entry.server.node.' + suffix
           );
 
-          if (!(await doesFileExist(nodeEntryServer))) {
+          if (!(await isFile(nodeEntryServer))) {
             let contents = fs.readFileSync(entryServer).toString();
             if (
               contents.match(
@@ -123,20 +112,6 @@ export default function zugriff(
       buildDirectory: path.join('.zugriff', 'tmp'),
       manifest: true,
       buildEnd: async (config) => {
-        let guards =
-          options.build?.preprocessors?.guards?.map((guard) => {
-            guard.credentials.username = new SHA3('SHA3-384', 'TEXT')
-              .update(guard.credentials.username)
-              .getHash('B64');
-            if (guard.credentials.password) {
-              guard.credentials.password = new SHA3('SHA3-384', 'TEXT')
-                .update(guard.credentials.password)
-                .getHash('B64');
-            }
-
-            return guard;
-          }) || [];
-
         fs.renameSync(
           path.join('.zugriff', 'tmp', 'client'),
           path.join('.zugriff', 'assets')
@@ -154,7 +129,7 @@ export default function zugriff(
             handler
           );
 
-          let externals = options.build.externals ?? [];
+          let externals = options.build?.externals ?? [];
 
           if (
             (await hasDependency('@zugriff/postgres')) == true &&
@@ -243,7 +218,6 @@ export default function zugriff(
               preprocessors: {
                 puppets: options.build?.preprocessors?.puppets || {},
                 redirects: options.build?.preprocessors?.redirects || [],
-                guards,
               },
               postprocessors: {
                 interceptors: options.build?.postprocessors?.interceptors || [],
@@ -277,7 +251,6 @@ export default function zugriff(
                     ? []
                     : staticRouter(assets)
                 ),
-                guards,
               },
               postprocessors: {
                 interceptors: options.build?.postprocessors?.interceptors || [],

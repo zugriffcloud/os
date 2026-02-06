@@ -42,7 +42,6 @@ pub async fn deploy(
   external: Vec<String>,
   puppet: Vec<String>,
   redirect: Vec<String>,
-  disable_assets_default_index_html_redirect: bool,
   pack: bool,
   interceptors: Vec<String>,
   prefer_file_router: bool,
@@ -50,7 +49,6 @@ pub async fn deploy(
   enable_static_router: bool,
   disable_static_router: bool,
   disable_function_discovery: bool,
-  guards: Vec<String>,
   asset_cache_control: Vec<String>,
 ) -> ExitCode {
   let deployment_token = match deployment_token {
@@ -112,7 +110,6 @@ pub async fn deploy(
       prefer_puppets,
       enable_static_router,
       true,
-      guards,
     );
 
     if let Err(error) = config.validate() {
@@ -153,14 +150,12 @@ pub async fn deploy(
       assets,
       puppet,
       redirect,
-      disable_assets_default_index_html_redirect,
       interceptors,
       prefer_file_router,
       prefer_puppets,
       enable_static_router,
       disable_static_router,
       disable_function_discovery,
-      guards,
       asset_cache_control,
     )
     .await

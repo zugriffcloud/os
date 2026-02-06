@@ -16,7 +16,6 @@ import {
   staticRouter,
   writeFile,
 } from '$lib/util';
-import SHA3 from 'jssha';
 
 export default function createIntegration(
   config: {
@@ -26,11 +25,6 @@ export default function createIntegration(
       preprocessors?: {
         puppets?: Record<string, string>;
         redirects?: Array<{ path: string; location: string; status: number }>;
-        guards?: Array<{
-          credentials: { username: string; password: string | null };
-          scheme: 'basic';
-          patterns: Array<string>;
-        }>;
       };
       postprocessors?: {
         interceptors?: Array<{
@@ -182,20 +176,6 @@ export default function createIntegration(
         }
       },
       'astro:build:done': async (options) => {
-        let guards =
-          config.build.preprocessors?.guards?.map((guard) => {
-            guard.credentials.username = new SHA3('SHA3-384', 'TEXT')
-              .update(guard.credentials.username)
-              .getHash('B64');
-            if (guard.credentials.password) {
-              guard.credentials.password = new SHA3('SHA3-384', 'TEXT')
-                .update(guard.credentials.password)
-                .getHash('B64');
-            }
-
-            return guard;
-          }) || [];
-
         let { pages, routes, dir } = options;
 
         try {
@@ -378,7 +358,6 @@ export default function createIntegration(
               preprocessors: {
                 puppets,
                 redirects,
-                guards,
               },
               postprocessors: {
                 interceptors: assets.includes('/404.html')
@@ -425,7 +404,6 @@ export default function createIntegration(
               preprocessors: {
                 puppets: {},
                 redirects,
-                guards,
               },
               postprocessors: {
                 interceptors: assets.includes('/404.html')
