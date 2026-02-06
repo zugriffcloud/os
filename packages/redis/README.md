@@ -28,12 +28,11 @@ await client.cmd('SET', 'number', 1); // { anchor: 'id', data: 'OK' }
 await client.cmd('SET', 'json', { hello: 'world' }); // { anchor: 'id', data: 'OK' }
 ```
 
-### Querying a value
+### Querying for a value
 
 ```ts
-const value = await client.cmd<number>('GET', 'number'); // { anchor: 'id', data: 1 }
+const value1 = await client.cmd<number>('GET', 'number'); // { anchor: 'id', data: 1 }
+const value2 = await client.cmd<{ hello: string }>('GET', 'json'); // { anchor: 'id', data: { hello: 'world' } }
 ```
 
-```ts
-const value = await client.cmd<{ hello: string }>('GET', 'json'); // { anchor: 'id', data: { hello: 'world' } }
-```
+_Redis is a registered trademark of Redis Ltd. Any rights therein are reserved to Redis Ltd._
