@@ -41,7 +41,6 @@
     "@sveltejs/kit": "^2"
   },
   "dependencies": {
-    "esbuild": "^0.25.2",
-    "jssha": "^3.3.1"
+    "esbuild": "^0.27.3"
   }
 }

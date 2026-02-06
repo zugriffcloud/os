@@ -1,5 +1,5 @@
 use awc::Client;
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 use flate2::read::GzDecoder;
 use once_cell::sync::Lazy;
 use std::ops::Deref;
@@ -20,7 +20,7 @@ use zip::ZipArchive;
 use crate::Args;
 
 use super::cache::cache_dir;
-use super::pretty::{self, default_spinner, Status};
+use super::pretty::{self, Status, default_spinner};
 
 #[derive(strum_macros::Display, PartialEq, Eq, Debug)]
 pub enum Installer {
@@ -84,8 +84,7 @@ pub async fn install(arg: &Args) {
           installers
             .iter()
             .map(|item| item.0.to_string())
-            .collect::<Vec<String>>()
-            .as_ref(),
+            .collect::<Vec<String>>(),
         )
         .interact()
         .unwrap()
@@ -134,7 +133,7 @@ pub async fn install(arg: &Args) {
       };
 
       let npm_url = format!(
-        "https://registry.npmjs.org/@esbuild/{}/-/{}-0.21.4.tgz",
+        "https://registry.npmjs.org/@esbuild/{}/-/{}-0.27.3.tgz",
         package, package
       );
 
@@ -200,8 +199,7 @@ pub async fn install(arg: &Args) {
           installers
             .iter()
             .map(|item| item.0.to_string())
-            .collect::<Vec<String>>()
-            .as_ref(),
+            .collect::<Vec<String>>(),
         )
         .interact()
         .unwrap()
@@ -244,9 +242,9 @@ pub async fn install(arg: &Args) {
         }
       };
 
-      let package = format!("node-v20.13.1-{}", package);
+      let package = format!("node-v24.13.0-{}", package);
 
-      let node_url = format!("https://nodejs.org/dist/v20.13.1/{}.{}", package, extension);
+      let node_url = format!("https://nodejs.org/dist/v24.13.0/{}.{}", package, extension);
 
       let client = Client::default();
       let mut res = client
@@ -297,7 +295,10 @@ pub async fn install(arg: &Args) {
         } else if unix.is_file() {
           unix
         } else {
-          pretty::log(None, "Unable to locate Node.js executable. Please try again or choose a different installer.");
+          pretty::log(
+            None,
+            "Unable to locate Node.js executable. Please try again or choose a different installer.",
+          );
           return;
         }
       };

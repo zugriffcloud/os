@@ -11,17 +11,17 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.4",
-    "@astrojs/mdx": "^4.2.4",
-    "@astrojs/starlight": "^0.33.2",
+    "@astrojs/check": "^0.9.6",
+    "@astrojs/mdx": "^4.3.13",
+    "@astrojs/starlight": "^0.37.6",
     "@zugriff/adapter-astro": "workspace:*",
     "@zugriff/cryptography": "workspace:*",
     "@zugriff/env": "workspace:*",
     "@zugriff/mailman": "workspace:*",
     "@zugriff/postgres": "workspace:*",
     "@zugriff/redis": "workspace:*",
-    "astro": "^5.7.0",
-    "sharp": "^0.33.4",
-    "typescript": "^5.4.5"
+    "astro": "^5.17.1",
+    "sharp": "^0.34.5",
+    "typescript": "^5.9.3"
   }
 }
