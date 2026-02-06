@@ -9,6 +9,7 @@ npm i --save-dev @zugriff/adapter-sveltekit
 ```
 
 ```js
+// svelte.config.js
 import adapter from '@zugriff/adapter-sveltekit';
 
 /** @type {import('@sveltejs/kit').Config} */

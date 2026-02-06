@@ -9,6 +9,7 @@ npm i --save-dev @zugriff/adapter-astro
 ```
 
 ```js
+// astro.config.mjs
 import adapter from '@zugriff/adapter-astro';
 
 export default defineConfig({

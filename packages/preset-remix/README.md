@@ -9,6 +9,7 @@ npm i --save-dev @zugriff/preset-remix
 ```
 
 ```js
+// vite.config.ts
 import { vitePlugin as remix } from '@remix-run/dev';
 import { installGlobals } from '@remix-run/node';
 import tsconfigPaths from 'vite-tsconfig-paths';

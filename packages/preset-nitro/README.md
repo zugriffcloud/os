@@ -11,6 +11,7 @@ npm i --save-dev @zugriff/preset-nitro
 ### Nuxt
 
 ```ts
+// nuxt.config.ts
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   nitro: {
@@ -23,6 +24,7 @@ export default defineNuxtConfig({
 ### SolidStart
 
 ```ts
+// app.config.ts
 import { defineConfig } from '@solidjs/start/config';
 
 export default defineConfig({
