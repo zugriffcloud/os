@@ -4,7 +4,8 @@ description: What zugriff is. What zugriff can do. What zugriff cannot do.
 ---
 
 With zugriff, a WeltByte GmbH product, you can deploy your web applications and APIs at the Edge, close to your users. All
-without compromising on GDPR, developer experience and performance.
+without compromising on GDPR, developer experience and performance. In addition, you can create custom dashboards, services,
+or integrations using the well-documented [API](/reference/openapi).
 
 Supporting both dynamic and static content, our internal router will decide whether we return a static or dynamic response.
 Furthermore, if required to comply with local laws, you can choose what locations may serve your requests. By default, your
@@ -12,12 +13,12 @@ application and environment variables are lazily cached on edge nodes.
 
 To server-side-render your requests as efficiently as possible, we use our own [JavaScript Runtime](/reference/runtime-apis)
 as an alternative to [NodeJS](https://nodejs.org). This allows us to almost eliminate cold-starts and better parallelise execution.  
-Leveraging [V8](https://v8.dev) isolates, sandboxed JavaScript execution environments, we protect your execution environment
+Using [V8](https://v8.dev) isolates, sandboxed JavaScript execution environments, we protect your execution environment
 from others we host.  
 Learn more about [framework integrations](/ecosystem/integrations),
 [request and response streaming](/reference/runtime-apis/#readablestream), [regional deployments](/concepts/dns),
 [supported APIs](/reference/runtime-apis), [Node.js compatibility](/reference/runtime-apis/#nodejs-compatibility),
-[establishing TCP connections](/reference/runtime-apis#sockets-tcp) (CloudFlare compatible) and our ecosystem of vendor-lock-free
+[establishing TCP connections](/reference/runtime-apis#sockets-tcp) (Cloudflare-compatible) and our ecosystem of vendor-lock-free
 proxies to send [emails](/ecosystem/addons/smtp) and communicate with [databases](/ecosystem/addons/postgres) or
 [key-value stores](/ecosystem/addons/redis).
 
