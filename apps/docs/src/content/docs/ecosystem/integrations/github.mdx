@@ -1,0 +1,36 @@
+---
+title: 'GitHub App'
+---
+
+Import an existing GitHub repository to deploy in moments. Push events trigger a new deployment,
+promoting it to the current branch or tag name. Please set domain labels accordingly.  
+Disabling GitHub as an OAuth provider will pause deployments. Please find your OAuth settings in your account
+settings.
+
+## Detect And Inject
+
+By default, zugriff will try to detect and inject framework-specific configuration. To disable this behaviour,
+create a shared environment variable named `ZUGRIFF_AUTO_DEPLOY_DETECT_AND_INJECT` with a value of `false`.
+To output the adapted configuration file, a shared environment variable named
+`ZUGRIFF_AUTO_DEPLOY_DETECT_AND_INJECT_LOG_CONFIGURATION` with a value of `true`.  
+If defined, to build your application, zugriff will execute the `build` command using either `npm`, `pnpm`, or
+`yarn`.  
+Frameworks or applications with unmet requirements can be manually configured. Please find a list of
+frameworks supporting zero-config deployments below.
+
+| Framework      | Detect | Inject | Build |
+| :------------- | :----- | :----- | :---- |
+| SvelteKit      | ✓      | ✓      | ✓     |
+| Astro          | ✓      | ✓      | ✓     |
+| SolidStart     | ✓      | ✓      | ✓     |
+| Nuxt           | ✓      | ✓      | ✓     |
+| Remix          | ✓      | ✓      | ✓     |
+| React Router   | ✓      | ✓      | ✓     |
+| Next.js[^1]    | ✓      | ✓      | ✓     |
+| Static         | ✓      | -      | -     |
+| Hugo[^2] (SSG) | ✓      | ✓      | ✓     |
+| Jekyll (SSG)   | ✓      | -      | ✓     |
+
+[^1]: Next.js\<=15.4.x supported.
+
+[^2]: Please define a build command if you use a legacy configuration file. (e.g. `config.toml`)
