@@ -2,6 +2,10 @@
 title: 'Next.js'
 ---
 
+:::note
+Unfortunately, Cloudflare discontinued `@cloudflare/next-on-pages`. We noticed issues with applications using `next@15.5.0` or later.
+:::
+
 After developing your application and configuring your routes to run on the edge runtime, you can use
 [`@cloudflare/next-on-pages`](https://www.npmjs.com/package/@cloudflare/next-on-pages) to build your
 application for both Cloudflare Pages and zugriff.
@@ -13,15 +17,27 @@ import { Steps } from '@astrojs/starlight/components';
 1. Configure your routes and API endpoints
 
    ```diff lang="tsx"
-   // page|endpoint.tsx|ts
+   // *.(t|j)s
    + export const runtime = 'edge';
 
-   export default function Page() {
-     return (...);
+   export default function handler(
+      req: NextApiRequest,
+      res: NextApiResponse<{ name: string; }>
+   ) {
+      res.status(200).json({ name: "John Doe" });
    }
    ```
 
-2. (Optional) Configure "next/image"
+   ```diff lang="tsx"
+   // *.(t|j)sx
+   + export const runtime = 'experimental-edge';
+
+   export default function Page() {
+      return <h1>Hallo Welt!</h1>;
+   }
+   ```
+
+2. Configure "next/image"
 
    ```diff lang="js"
    // next.config.js
