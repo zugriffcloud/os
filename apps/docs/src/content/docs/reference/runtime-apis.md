@@ -9,7 +9,7 @@ While we do not support all NodeJS APIs, many npm packages should run on zugriff
 :::
 
 :::tip
-You do not have to miss out on databases and sending emails. Explore out CloudFlare-compatible
+You do not have to miss out on databases and sending emails. Explore out Cloudflare-compatible
 [TCP sockets](#sockets-tcp), our [ecosystem of proxies](/ecosystem/addons/postgres) and our Node.js
 compatible [`net`](#net) and [`tls`](#tls) modules.
 :::
@@ -245,6 +245,10 @@ Access the SubtleCrypto interface through the [`crypto.subtle`](#cryptosubtle) i
 | HKDF              |      |        |         |         |        |     ✓      |     ✓     |         |           |
 | PBKDF2            |      |        |         |         |        |     ✓      |     ✓     |         |           |
 | AES-KW            |      |        |         |         |        |            |           |    ✓    |     ✓     |
+| X25519            |      |        |         |         |        |     ✓      |     ✓     |         |           |
+| Ed25519           |  ✓   |   ✓    |         |         |        |            |           |         |           |
+
+Please find more information at https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto#supported_algorithms.
 
 ### [`TextDecoder`](https://developer.mozilla.org/en-US/docs/Web/API/TextDecoder)
 
