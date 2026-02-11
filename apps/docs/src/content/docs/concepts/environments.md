@@ -6,15 +6,15 @@ title: 'Environments'
 The key of an environment variable must be unique across a project.  
 :::
 
-Each project has a default environment which is shared across all domains. To scope the access of a domain to a
+Each project has a default environment that is shared across all domains. To scope the access of a domain to a
 specific environment variable, you must create a new environment and connect it.
 
 Changes to an environment do not require a re-deployment in most cases.
 
 ## Example
 
-You have a project with a b2b and b2c environment. Both the domain for the b2b and the b2c environment are
-connected to the same project and were promoted to serve requests from the same deployment.
+You have a project with both B2B and B2C environments. Both the B2B and B2C domains are connected to the same
+project and were promoted to serve requests from the same deployment.
 
 When clients search for a product, you need to query separate databases. This can be as easy as setting up
 two different [proxies](/ecosystem/addons/postgres/) and scoping the API tokens to an environment connected with a
