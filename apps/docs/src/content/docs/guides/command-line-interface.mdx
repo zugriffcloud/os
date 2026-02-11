@@ -2,7 +2,7 @@
 title: Command Line Interface
 ---
 
-The command line interface will help you communicate with our API, quickly scaffold
+The command-line interface will help you communicate with our API, quickly scaffold
 simple projects using Hono or bundle your application into a proper deployment.
 
 :::note
@@ -17,22 +17,15 @@ Add `-h` or `--help` to any command for more information or `-y` to accept defau
 
 ## Subcommands
 
-### `new`
+To discover all available subcommands, please run `zugriff --help`.
+
+### `create`
 
 Used to create a new project at a specific location. Add `--typescript` to create a
 project using Typescript.
 
 ```sh
-zugriff new my-project
-```
-
-### `init`
-
-Similar to `new`, a new project is created. The location of the project will be your
-current working directory. The `--typescript` flag remains optional.
-
-```sh
-zugriff init --typescript
+zugriff create hono ./my-project
 ```
 
 ### `preview`
@@ -41,14 +34,14 @@ zugriff init --typescript
 We advise against using `preview` to serve a deployment outside your local network.
 :::
 
-Used to preview a project. A `.zugriff` must be present. Alternatively, appropriate
+Used to preview a project. A `.zugriff` folder must be present. Alternatively, appropriate
 flags must be set. The `--watch` flag will listen for changes in your current
 working directory and restart the server accordingly.
 
 Flags will not result in a modified configuration. Instead, deploy `.zugriff` with
 the same flags, use the `pack` command or rebuild your project using an adapter.
 
-Note that a (modified) `.zugriff` folder might be left behind when panicking.
+Note that a (modified) `.zugriff` folder might be left behind when the command panicks.
 
 Please see the `deploy` or `pack` subcommands for available flags.
 
@@ -90,8 +83,6 @@ subcommands.
 - Prefer a file-based routing with `--preferFileRouter` (e.g. "/about.html" ->
   "/about")
 - Automatically configure puppets instead of redirects with `--preferPuppets`
-- Password-protect a path with `--guard <GUARD>` or `-g <GUARD>` (e.g. "user:pass"
-  or "user:pass:/secrets.txt")
 - Configure a caching strategy for assets with `--assetCacheControl 
 <ASSET_CACHE_CONTROL>` (`no-cache`, `no-store` and `max-age=n` are supported, e.g.
   `no-cache:/main-menu.pdf`)

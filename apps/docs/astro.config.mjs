@@ -38,20 +38,16 @@ export default defineConfig({
           label: 'Guides',
           items: [
             {
-              label: 'Getting Started',
-              link: 'guides/getting-started',
-            },
-            {
-              label: 'Creating a Deployment Token',
-              link: 'guides/creating-a-deployment-token',
+              label: 'Quickstart',
+              link: 'guides/quickstart',
             },
             {
               label: 'Examples',
               link: 'guides/examples',
             },
             {
-              label: 'Frameworks',
-              link: 'guides/frameworks',
+              label: 'Integrations',
+              link: 'guides/integrations',
             },
             {
               label: 'Static Web Apps',
