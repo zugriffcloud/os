@@ -4,7 +4,7 @@ title: Sovereignty
 
 With zugriff, a WeltByte GmbH product, we embarked on a mission to design and develop a cutting-edge
 hosting platform that fulfils the specific requirements of European companies, institutions,
-citizens and everyone who shares our values.
+citizens and everyone who shares the values of the European Union.
 
 Building our platform as portable as possible allows us to partner with any company to provide
 you, our user, with the best cost-benefit without being reliant on any cloud service. This also
