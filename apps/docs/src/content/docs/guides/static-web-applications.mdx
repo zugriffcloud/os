@@ -2,14 +2,14 @@
 title: Static Web Apps
 ---
 
-Static Web Apps do not run on the server but on a users browser. Deploying a Static Web App
+Static Web Apps do not run on the server; they run in the browser. Deploying a Static Web App
 can be as simple as executing the following command.
 
 ```zsh
 zugriff deploy --deploymentToken <TOKEN> --asset ./index.html
 ```
 
-The command line interface will derive appropriate redirects (e.g. `/` to `/index.html`).
+The command-line interface will derive appropriate redirects (e.g. `/` to `/index.html`).
 To use [puppets](/concepts/processors/#puppets), which resolve to a static asset
 instead of throwing a redirect, pass the `--preferPuppets` flag.
 
@@ -55,8 +55,7 @@ preserve the path of `./public/.well-known/security.txt` (`example.com/.well-kno
 :::tip
 
 <i>
-  You might want to look into catching 404s using interceptors and using guards
-  to password-protect your application. TLDR; `--intercept 404:/404.html`,
-  `--guard user:pass`, `--guard user:pass:/secrets.txt`.
+  You might want to look into catching 404s using interceptors. TLDR;
+  `--intercept 404:/404.html`.
 </i>
 :::
