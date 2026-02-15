@@ -1,5 +1,11 @@
 # @zugriff/mailman
 
+## 1.1.0
+
+### Minor Changes
+
+- 7fc49b1: bump dependencies
+
 ## 1.0.2
 
 ### Patch Changes

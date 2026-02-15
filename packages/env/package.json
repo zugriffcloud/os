@@ -1,6 +1,6 @@
 {
   "name": "@zugriff/env",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Environment Variables at the Edge",
   "repository": {
     "type": "git",

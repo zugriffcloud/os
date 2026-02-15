@@ -1,5 +1,11 @@
 # @zugriff/adapter-sveltekit
 
+## 1.1.0
+
+### Minor Changes
+
+- 7fc49b1: bump dependencies, normalise and update configuration
+
 ## 1.0.5
 
 ### Patch Changes

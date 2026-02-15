@@ -1,5 +1,11 @@
 # @zugriff/postgres
 
+## 1.0.3
+
+### Patch Changes
+
+- 7fc49b1: bump dependencies
+
 ## 1.0.2
 
 ### Patch Changes
