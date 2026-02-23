@@ -54,6 +54,10 @@ export default defineConfig({
               link: 'guides/static-web-applications',
             },
             {
+              label: 'Single-Page Applications',
+              link: 'guides/single-page-applications',
+            },
+            {
               label: 'Command Line Interface',
               link: 'guides/command-line-interface',
             },

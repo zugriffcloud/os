@@ -1,0 +1,36 @@
+---
+title: SPA
+description: A guide to configuring your single-page application (SPA).
+---
+
+To deploy a single-page application (SPA) with more than a single route, you must either use puppet routing or an Edge Function
+to prevent `404 Not Found` errors. Please see the following example of an Edge Function for routing purposes.
+
+```ts
+export async function handler(request: Request) {
+  const response = await fetch(
+    'https://' + new URL(request.url).host + '/index.html'
+  );
+
+  return new Response(response.body, {
+    headers: { 'Content-Type': 'text/html' },
+  });
+}
+```
+
+Please see [Static Web Apps](/guides/static-web-applications) for more information.
+
+:::note
+To deploy a single-page application through [GitHub](/ecosystem/integrations/github) built with Figma Make or another website builder that is difficult to customise,
+configure a custom build script, and attach the Edge Function using flags. Please see an example build script and customised
+deployment flags below.
+
+```zsh title="Build Command"
+pnpm run build && echo "export async function handler(request: Request) { const response = await fetch('https://' + new URL(request.url).host + '/index.html'); return new Response(response.body, { headers: { 'Content-Type': 'text/html' } }); }" > zugriff.ts
+```
+
+```zsh title="Deployment Flags"
+--function zugriff.ts
+```
+
+:::
