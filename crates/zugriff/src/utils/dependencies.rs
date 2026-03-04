@@ -112,11 +112,11 @@ pub async fn install(arg: &Args) {
 
       command.spawn().unwrap();
       if let Err(err) = command.output().await {
-        panic!("esbuild install error: {:?}", err);
+        panic!("Unable to install esbuild: {:?}", err);
       }
 
       if which("esbuild").is_err() {
-        panic!("unable to locate esbuild after installed -> manual install");
+        panic!("Unable to locate the esbuild executable. Please install esbuild manually.");
       }
     } else {
       let package = match (std::env::consts::OS, std::env::consts::ARCH) {
@@ -128,7 +128,7 @@ pub async fn install(arg: &Args) {
         ("windows", "x86_64") => "win32-x64",
         ("windows", "aarch64") => "win32-arm64",
         _ => panic!(
-          "esbuild might not be supported on this machine - please choose a different installer"
+          "This machine might not support esbuild. Please install esbuild manually."
         ),
       };
 
@@ -220,12 +220,12 @@ pub async fn install(arg: &Args) {
 
       match installer.0 {
         Installer::HOMEBREW => command.arg("install").arg("node"),
-        _ => panic!("Installer not supported"),
+        _ => panic!("Unable to install Node.js. Please install Node.js manually."),
       };
 
       command.spawn().unwrap();
       if let Err(err) = command.output().await {
-        panic!("Node.js install error: {:?}", err);
+        panic!("Unable to install Node.js: {:?}", err);
       }
     } else {
       let (package, extension) = {
@@ -237,7 +237,7 @@ pub async fn install(arg: &Args) {
           ("linux", "aarch64") => ("linux-arm64", "tar.xz"),
           ("windows", "x86_64") => ("win-x64", "zip"),
           _ => panic!(
-            "Node might not be supported on this machine - please choose a different installer"
+            "This machine might not support Node.js. Please install Node.js manually."
           ),
         }
       };
@@ -297,7 +297,7 @@ pub async fn install(arg: &Args) {
         } else {
           pretty::log(
             None,
-            "Unable to locate Node.js executable. Please try again or choose a different installer.",
+            "Unable to locate the Node.js executable. Please install Node.js manually.",
           );
           return;
         }
