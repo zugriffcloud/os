@@ -1,4 +1,4 @@
-import '$lib/zugriff.d.ts';
+import '../zugriff.d.ts';
 
 let hash_wasm: typeof import('hash-wasm');
 

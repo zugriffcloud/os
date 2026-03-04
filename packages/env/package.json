@@ -36,6 +36,6 @@
   "author": "Luca Goslar <luca@zugriff.eu>",
   "license": "MIT",
   "dependencies": {
-    "dotenv": "^17.2.4"
+    "dotenv": "^17.3.1"
   }
 }

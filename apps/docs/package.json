@@ -20,7 +20,7 @@
     "@zugriff/mailman": "workspace:*",
     "@zugriff/postgres": "workspace:*",
     "@zugriff/redis": "workspace:*",
-    "astro": "^5.17.1",
+    "astro": "^5.18.0",
     "sharp": "^0.34.5",
     "typescript": "^5.9.3"
   }
