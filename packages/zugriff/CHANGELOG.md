@@ -1,5 +1,11 @@
 # zugriff
 
+## 1.0.10
+
+### Patch Changes
+
+- 1e0a0a9: bump dependencies
+
 ## 1.0.9
 
 ### Patch Changes
