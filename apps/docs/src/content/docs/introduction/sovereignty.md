@@ -18,4 +18,5 @@ conflict in the precedence of national law of countries outside the jurisdiction
 Union.
 
 Find an up-to-date list of companies we use to provide our services, what data we collect and how we
-handle your data in our [privacy policy](https://zugriff.eu/privacy-policy).
+handle your data in our [privacy policy](https://zugriff.eu/privacy-policy) and
+[data processing agreement](https://zugriff.eu/data-processing-agreement).
