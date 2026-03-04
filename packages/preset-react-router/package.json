@@ -1,6 +1,6 @@
 {
   "name": "@zugriff/preset-react-router",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Deploy your React Router application with zugriff",
   "repository": {
     "type": "git",
