@@ -15,5 +15,7 @@
     "@zugriff/redis": "1.1.1",
     "zugriff": "1.0.10"
   },
-  "changesets": []
+  "changesets": [
+    "angry-cobras-ring"
+  ]
 }
