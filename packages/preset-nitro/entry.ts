@@ -1,25 +1,10 @@
-// @ts-ignore
-import { useNitroApp } from 'nitro/runtime';
-import '#nitro-internal-pollyfills';
+import '#nitro/virtual/polyfills';
+import { useNitroApp } from 'nitro/app';
 
 const nitroApp = useNitroApp();
 
-async function handler(request) {
-  const url = new URL(request.url);
-
-  let body;
-  if (request.body) {
-    body = await request.arrayBuffer();
-  }
-
-  return nitroApp.localFetch(url.pathname + url.search, {
-    context: {},
-    host: url.hostname,
-    protocol: url.protocol,
-    method: request.method,
-    headers: Object.fromEntries(request.headers.entries()),
-    body,
-  });
+async function handler(request: Request): Promise<Response> {
+  return await nitroApp.fetch(request);
 }
 
 export { handler };

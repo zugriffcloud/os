@@ -1,24 +1,23 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as esbuild from 'esbuild';
 
 import type { NitroPreset } from 'nitropack';
 
 let technology = 'Nitro';
 let packageJson: object;
 
-try {
-  fs.accessSync('nuxt.config.ts', fs.constants.R_OK);
-  technology = 'Nuxt';
-} catch (_) {}
-
-try {
-  fs.accessSync('app.config.ts', fs.constants.R_OK);
-  let file = fs.readFileSync('app.config.ts');
-  if (file.toString().includes('@solidjs')) {
-    technology = 'SolidStart';
-  }
-} catch (_) {}
+if (hasDependency('@solidjs/start')) {
+  technology = 'SolidStart';
+} else if (hasDependency('next')) {
+  technology = 'Next.js';
+} else {
+  try {
+    fs.accessSync('nuxt.config.ts', fs.constants.R_OK);
+    technology = 'Nuxt';
+  } catch (_) {}
+}
 
 let externals = [];
 
@@ -47,57 +46,19 @@ if (hasDependency('@zugriff/env') == true) {
 export default <NitroPreset>{
   extends: 'base-worker',
   entry: fileURLToPath(new URL('entry.ts', import.meta.url)),
+  compressPublicAssets: false,
+  minify: false,
   output: {
     dir: '.zugriff',
     publicDir: path.join('.zugriff', 'assets').toString(),
-    serverDir: path.join('.zugriff', 'functions').toString(),
+    serverDir: path.join('.zugriff', 'functions', 'chunks').toString(),
   },
   rollupConfig: {
-    external: [
-      ...externals,
-      'node:async_hooks',
-      'async_hooks',
-      'node:buffer',
-      'buffer',
-      'node:assert',
-      'assert',
-      'node:events',
-      'events',
-      'node:path',
-      'path',
-      'node:process',
-      'process',
-      'node:util',
-      'util',
-      'node:string_decoder',
-      'string_decoder',
-      'zugriff:sockets',
-      'cloudflare:sockets',
-      'node:net',
-      'net',
-      'node:tls',
-      'tls',
-      'node:dns',
-      'dns',
-      'node:os',
-      'os',
-      'node:stream',
-      'stream',
-      'node:url',
-      'url',
-      'node:diagnostics_channel',
-      'diagnostics_channel',
-      'node:zlib',
-      'zlib',
-      'node:crypto',
-      'crypto',
-      'node:perf_hooks',
-      'perf_hooks',
-    ],
     output: {
       entryFileNames: 'index.js',
       format: 'esm',
       sourcemap: false,
+      inlineDynamicImports: false,
     },
   },
   commands: {
@@ -105,7 +66,62 @@ export default <NitroPreset>{
     deploy: 'zugriff deploy',
   },
   hooks: {
-    compiled() {
+    async compiled() {
+      await esbuild.build({
+        entryPoints: [path.join('.zugriff', 'functions', 'chunks', 'index.js')],
+        outfile: path.join('.zugriff', 'functions', 'index.js'),
+        external: [
+          ...externals,
+          'node:async_hooks',
+          'async_hooks',
+          'node:buffer',
+          'buffer',
+          'node:assert',
+          'assert',
+          'node:events',
+          'events',
+          'node:path',
+          'path',
+          'node:process',
+          'process',
+          'node:util',
+          'util',
+          'node:string_decoder',
+          'string_decoder',
+          'zugriff:sockets',
+          'cloudflare:sockets',
+          'node:net',
+          'net',
+          'node:tls',
+          'tls',
+          'node:dns',
+          'dns',
+          'node:os',
+          'os',
+          'node:stream',
+          'stream',
+          'node:url',
+          'url',
+          'node:diagnostics_channel',
+          'diagnostics_channel',
+          'node:zlib',
+          'zlib',
+          'node:crypto',
+          'crypto',
+          'node:perf_hooks',
+          'perf_hooks',
+        ],
+        target: 'esnext',
+        bundle: true,
+        minify: true,
+        platform: 'browser',
+        logLevel: 'error',
+        format: 'esm',
+        banner: {
+          js: 'globalThis.global = globalThis;',
+        },
+      });
+
       writeFile(
         path.join('.zugriff', 'config.json'),
         JSON.stringify({

@@ -5,32 +5,44 @@ This package is part of the [zugriff](https://zugriff.eu) ecosystem.
 ## Usage
 
 ```zsh
-npm i --save-dev @zugriff/preset-nitro
-```
-
-### Nuxt
-
-```ts
-// nuxt.config.ts
-// https://nuxt.com/docs/api/configuration/nuxt-config
-export default defineNuxtConfig({
-  nitro: {
-    preset: './node_modules/@zugriff/preset-nitro',
-  },
-  devtools: { enabled: true },
-});
+npm i --save-dev @zugriff/preset-nitro@alpha
 ```
 
 ### SolidStart
 
 ```ts
-// app.config.ts
-import { defineConfig } from '@solidjs/start/config';
+// vite.config.ts
+import { defineConfig } from 'vite';
+import { nitro } from 'nitro/vite';
+
+import { solidStart } from '@solidjs/start/config';
 
 export default defineConfig({
-  server: {
-    compressPublicAssets: false,
-    preset: './node_modules/@zugriff/preset-nitro',
-  },
+  plugins: [
+    solidStart(),
+    nitro({
+      preset: './node_modules/@zugriff/preset-nitro',
+    }),
+  ],
 });
 ```
+
+### vinext (Next.js)
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite';
+import vinext from 'vinext';
+import { nitro } from 'nitro/vite';
+
+export default defineConfig({
+  plugins: [
+    vinext(),
+    nitro({ preset: './node_modules/@zugriff/preset-nitro' }),
+  ],
+});
+```
+
+### Nuxt
+
+Please use the previous major version of `@zugriff/preset-nitro` with the current major version of `nuxt`, `nuxt@4`.
