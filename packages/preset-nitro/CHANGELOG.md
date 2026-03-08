@@ -1,5 +1,11 @@
 # @zugriff/preset-nitro
 
+## 2.0.0-alpha.0
+
+### Major Changes
+
+- 8ad7cb3: nitro v3
+
 ## 1.2.0
 
 ### Minor Changes
