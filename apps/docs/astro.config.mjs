@@ -50,7 +50,7 @@ export default defineConfig({
               link: 'guides/integrations',
             },
             {
-              label: 'Static Web Apps',
+              label: 'Static Web Applications',
               link: 'guides/static-web-applications',
             },
             {
