@@ -5,7 +5,8 @@ title: Deployment Architecture
 import { FileTree } from '@astrojs/starlight/components';
 
 :::tip
-Our CLI or Integration will take care of bundling your application.
+Our [command-line interface](/guides/command-line-interface) or [integration](/ecosystem/integrations) will
+take care of bundling your application.
 :::
 
 <FileTree>
@@ -20,12 +21,13 @@ Our CLI or Integration will take care of bundling your application.
 
 </FileTree>
 
-Note, that a deployment does not need to include a function handling dynamic content but can consist of static files only. While this goes both ways, beware that when missing a function, there is no way to route traffic hitting `/` to `index.html` for example. The CLI will automatically detect and generate such routing file.
+A deployment must contain a configuration file at `./config.json`, functions returning dynamic responses at
+`./functions`, and static assets at `./assets`.
 
 # Configuration
 
-A configuration file must be located at `.zugriff/config.json`. It must list included assets and functions.
-Files not listed in the configuration file will be stripped from the deployment.
+The configuration configures functions, static assets, preprocessors and postprocessors.
+Files not configured are stripped from the deployment.
 
 ```json
 {
@@ -53,23 +55,28 @@ Files not listed in the configuration file will be stripped from the deployment.
 }
 ```
 
-Please note that both file and asset paths referenced in the configuration file must be absolute from within their respected roots.
+Please note that paths referring to functions and static assets must be absolute from within their respective roots.
 
-Learn more about Puppets, Redirects and Interceptors [here](/concepts/processors).
+Learn more about preprocessors and postprocessors [here](/concepts/processors).
 
 ## Functions
 
-zugriff supports multiple dynamic entrypoints in a deployment. We forward requests a dynamic entrypoints according to wildcard patterns
-(expressions) applied to the path of a request.
-
-While catch-all patterns can be placed first, any other available pattern is checked for a match first. Duplicate patterns are simply
-overwritten.
+A function must export a request handler, or listen to requests using `addEventListener` as described in the
+[Runtime APIs](/reference/runtime-apis/#request-handler).
 
 ### Patterns
 
-While patterns might look like regular expressions, they are not. A pattern consists of a wildcard characters that are flexible
-in size and type and regular characters that are not.
+Incoming request paths are matched against deduplicated patterns, with catch-all patterns processed last.
+
+While patterns might look like regular expressions, they are not. A pattern can consist of lazy wildcards that are flexible
+in size and type, and regular characters that are not.
 For instance, `*` will match any path while `/prefix/*` will match any path prefixed with `/prefix/` and `*hello*` will match
 any path containing `hello`.
+When checked, the incoming request path will always start and end with a `/`. The request handler, however,
+will receive the original path.
 
-Note, the path itself will start and end with `/` when checked for matches. The function, however, will receive the original path.
+## Assets
+
+As seen in the example configuration file, assets can be configured to return a customised `Cache-Control` header. The value
+must start with `max-age=`, followed by the number of seconds to cache the asset, or be set to either `no-cache` or
+`no-store`.
