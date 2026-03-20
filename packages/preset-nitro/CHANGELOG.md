@@ -1,5 +1,11 @@
 # @zugriff/preset-nitro
 
+## 2.0.0-beta.2
+
+### Minor Changes
+
+- bump dependencies
+
 ## 2.0.0-alpha.1
 
 ### Major Changes
