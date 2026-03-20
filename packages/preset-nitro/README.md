@@ -5,7 +5,7 @@ This package is part of the [zugriff](https://zugriff.eu) ecosystem.
 ## Usage
 
 ```zsh
-npm i --save-dev @zugriff/preset-nitro@alpha
+npm i --save-dev @zugriff/preset-nitro@beta
 ```
 
 ### SolidStart
