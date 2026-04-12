@@ -175,9 +175,7 @@ export default function createIntegration(
           };
         }
       },
-      'astro:build:done': async (options) => {
-        let { pages, routes, dir } = options;
-
+      'astro:build:done': async ({}) => {
         try {
           fs.rmSync('.zugriff', { recursive: true, force: true });
         } catch {}

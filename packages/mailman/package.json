@@ -36,10 +36,10 @@
   "author": "Luca Goslar <luca@zugriff.eu>",
   "license": "MIT",
   "dependencies": {
-    "nodemailer": "^8.0.1"
+    "nodemailer": "^8.0.5"
   },
   "devDependencies": {
-    "@types/nodemailer": "^7.0.11",
+    "@types/nodemailer": "^8.0.0",
     "smtp-tester": "^2.1.0"
   }
 }

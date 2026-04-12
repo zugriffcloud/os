@@ -37,8 +37,8 @@
   "author": "Luca Goslar <luca@zugriff.eu>",
   "license": "MIT",
   "dependencies": {
-    "esbuild": "^0.27.4",
+    "esbuild": "^0.28.0",
     "nitro": "3.0.260311-beta",
-    "nitropack": "^2.13.1"
+    "nitropack": "^2.13.3"
   }
 }

@@ -42,8 +42,8 @@
   "author": "Luca Goslar <luca@zugriff.eu>",
   "license": "MIT",
   "dependencies": {
-    "@react-router/dev": "^7.13.1",
-    "esbuild": "^0.27.3"
+    "@react-router/dev": "^7.14.0",
+    "esbuild": "^0.28.0"
   },
   "peerDependencies": {
     "react-router": ">= 7.9.0",
