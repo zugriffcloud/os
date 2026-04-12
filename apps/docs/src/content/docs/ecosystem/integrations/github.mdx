@@ -7,6 +7,9 @@ promoting it to the current branch or tag name. Please set domain labels accordi
 Disabling GitHub as an OAuth provider will pause deployments. Please find your OAuth settings in your account
 settings.
 
+The build environment operates on a customised IPv4-only network and is constrained to 10 GB of disk space, 4
+GB of memory, 1 vCPU, and 10 minutes of build time, with restricted access to system calls.
+
 ## Detect And Inject
 
 By default, zugriff will try to detect and inject framework-specific configuration. To disable this behaviour,
@@ -14,7 +17,7 @@ create a shared environment variable named `ZUGRIFF_AUTO_DEPLOY_DETECT_AND_INJE
 To output the adapted configuration file, a shared environment variable named
 `ZUGRIFF_AUTO_DEPLOY_DETECT_AND_INJECT_LOG_CONFIGURATION` with a value of `true`.  
 If defined, to build your application, zugriff will execute the `build` command using either `npm`, `pnpm`, or
-`yarn`.  
+`yarn`. \
 Frameworks or applications with unmet requirements can be manually configured. Please find a list of
 frameworks supporting zero-config deployments below.
 
