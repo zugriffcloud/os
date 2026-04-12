@@ -1,5 +1,11 @@
 # @zugriff/preset-remix
 
+## 1.1.1
+
+### Patch Changes
+
+- b546e1e: bump dependencies
+
 ## 1.1.0
 
 ### Minor Changes

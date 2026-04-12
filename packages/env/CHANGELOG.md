@@ -1,5 +1,11 @@
 # @zugriff/env
 
+## 1.2.0
+
+### Minor Changes
+
+- b546e1e: bump dependencies
+
 ## 1.1.1
 
 ### Patch Changes
