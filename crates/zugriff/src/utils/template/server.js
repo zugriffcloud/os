@@ -399,9 +399,7 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('X-Zugriff-Static', false);
     res.statusCode = statusCode;
 
-    _res.headers.forEach((value, key) => {
-      res.setHeader(key, value);
-    });
+    res.setHeaders(_res.headers);
     if (_res.body instanceof ReadableStream) {
       const reader = _res.body.getReader();
       reader.read().then(function processText({ done, value }) {
