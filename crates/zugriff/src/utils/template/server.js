@@ -253,8 +253,6 @@ const server = http.createServer(async (req, res) => {
           }
 
           if (req.method == 'GET') {
-            res.writeHead(200, headers);
-
             let ranges = [];
 
             if (req.headers.range) {
@@ -264,19 +262,32 @@ const server = http.createServer(async (req, res) => {
                 part = part.trim();
                 if (part.startsWith('-')) {
                   part = part.slice(1);
-                  ranges.push(content.buffer.slice(0, Number(part)));
+                  ranges.push(content.buffer.slice(0, Number(part) + 1));
                 } else if (part.endsWith('-')) {
                   ranges.push(content.buffer.slice(Number(part)));
                 } else {
                   let [start, end] = part.split('-');
-                  ranges.push(content.buffer.slice(Number(start), Number(end)));
+                  ranges.push(
+                    content.buffer.slice(Number(start), Number(end) + 1)
+                  );
                 }
               }
             } else {
               ranges.push(content);
             }
 
-            res.end(Buffer.concat(ranges));
+            const range = Buffer.concat(
+              ranges.map((range) => Buffer.from(range))
+            );
+
+            if (req.headers.range) {
+              headers['Content-Length'] = range.byteLength;
+              res.writeHead(206, headers);
+            } else {
+              res.writeHead(200, headers);
+            }
+
+            res.end(range);
           } else {
             res.writeHead(200, headers);
             res.end();
