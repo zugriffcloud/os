@@ -1,5 +1,11 @@
 # @zugriff/preset-react-router
 
+## 1.0.2
+
+### Patch Changes
+
+- b546e1e: bump dependencies
+
 ## 1.0.1
 
 ### Patch Changes

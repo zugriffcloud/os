@@ -1,5 +1,11 @@
 # zugriff
 
+## 1.0.11
+
+### Patch Changes
+
+- b546e1e: bump dependencies
+
 ## 1.0.10
 
 ### Patch Changes
