@@ -127,13 +127,11 @@ pub async fn install(arg: &Args) {
         ("linux", "aarch64") => "linux-arm64",
         ("windows", "x86_64") => "win32-x64",
         ("windows", "aarch64") => "win32-arm64",
-        _ => panic!(
-          "This machine might not support esbuild. Please install esbuild manually."
-        ),
+        _ => panic!("This machine might not support esbuild. Please install esbuild manually."),
       };
 
       let npm_url = format!(
-        "https://registry.npmjs.org/@esbuild/{}/-/{}-0.27.3.tgz",
+        "https://registry.npmjs.org/@esbuild/{}/-/{}-0.28.0.tgz",
         package, package
       );
 
@@ -236,9 +234,7 @@ pub async fn install(arg: &Args) {
           ("linux", "arm") => ("linux-arm64", "tar.xz"),
           ("linux", "aarch64") => ("linux-arm64", "tar.xz"),
           ("windows", "x86_64") => ("win-x64", "zip"),
-          _ => panic!(
-            "This machine might not support Node.js. Please install Node.js manually."
-          ),
+          _ => panic!("This machine might not support Node.js. Please install Node.js manually."),
         }
       };
 
