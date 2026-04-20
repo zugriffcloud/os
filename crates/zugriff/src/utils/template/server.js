@@ -128,11 +128,7 @@ const server = http.createServer(async (req, res) => {
 
   // * Handle static content
 
-  if (
-    req.method === 'GET' ||
-    req.method === 'HEAD' ||
-    (req.method === 'OPTIONS' && req.url)
-  ) {
+  if (req.method === 'GET' || req.method === 'HEAD') {
     if (req.method === 'GET') {
       for (let redirect of config.preprocessors?.redirects || []) {
         if (redirect.path == tempPath) {
@@ -157,21 +153,32 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    let resolvedPath;
+    try {
+      resolvedPath = decodeURIComponent(tempPath).replace(/\/*$/, '');
+    } catch (_) {
+      resolvedPath = tempPath;
+    }
+
     let puppet = config.preprocessors?.puppets[tempPath];
     if (puppet) {
       if (debug)
         console.debug(
           'Using puppet "' + puppet + '" for path "' + tempPath + '"'
         );
-      tempPath = puppet;
+      resolvedPath = puppet;
     }
 
-    let filePath = path.join(dotZugriff, 'assets', tempPath);
+    let filePath = path.join(dotZugriff, 'assets', resolvedPath);
 
     const extname = String(path.extname(filePath)).toLowerCase();
     const contentType = MIME[extname] || 'application/octet-stream';
 
-    if (await doesFileExist(filePath)) {
+    if (
+      (await doesFileExist(filePath)) &&
+      filePath.startsWith(path.join(dotZugriff, 'assets')) &&
+      !resolvedPath.includes('\0')
+    ) {
       if (debug) console.debug('Returning file "' + filePath + '"');
       fs.readFile(filePath, (err, content) => {
         if (err) {
@@ -206,7 +213,7 @@ const server = http.createServer(async (req, res) => {
 
           for (let entry of config.assets) {
             if (typeof entry != 'string') {
-              if ('cacheControl' in entry && entry.path === tempPath) {
+              if ('cacheControl' in entry && entry.path === resolvedPath) {
                 cacheControl = entry.cacheControl;
               }
             }

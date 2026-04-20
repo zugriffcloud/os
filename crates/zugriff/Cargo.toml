@@ -1,6 +1,6 @@
 [package]
 name = "zugriff"
-version = "1.2.2"
+version = "1.2.3"
 edition = "2024"
 license = "EUPL-1.2"
 repository = "https://github.com/zugriffcloud/os"
