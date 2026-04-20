@@ -23,5 +23,8 @@
     "astro": "^6.1.5",
     "sharp": "^0.34.5",
     "typescript": "^6.0.2"
+  },
+  "devDependencies": {
+    "vite": "^7.3.1"
   }
 }
