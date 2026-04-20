@@ -11,6 +11,9 @@ configuration of your deployment.
 
 ## Preprocessors
 
+Preprocessors, including puppets and redirects, will receive the incoming encoded request path
+without a trailing slash.
+
 ### Puppets
 
 Puppets will, instead of redirecting the user, resolve a static asset.

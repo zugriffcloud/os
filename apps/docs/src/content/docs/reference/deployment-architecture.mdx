@@ -59,6 +59,14 @@ Please note that paths referring to functions and static assets must be absolute
 
 Learn more about preprocessors and postprocessors [here](/concepts/processors).
 
+The configuration is evaluated in the following order to process an incoming request.
+
+1. `preprocessors.redirects`
+2. `preprocessors.puppets`
+3. `assets`
+4. `functions`
+5. `postprocessors.interceptors`
+
 ## Functions
 
 A function must export a request handler, or listen to requests using `addEventListener` as described in the
@@ -72,7 +80,7 @@ While patterns might look like regular expressions, they are not. A pattern can 
 in size and type, and regular characters that are not.
 For instance, `*` will match any path while `/prefix/*` will match any path prefixed with `/prefix/` and `*hello*` will match
 any path containing `hello`.
-When checked, the incoming request path will always start and end with a `/`. The request handler, however,
+When checked, the incoming encoded request path will always start and end with a `/`. The request handler, however,
 will receive the original path.
 
 ## Assets
