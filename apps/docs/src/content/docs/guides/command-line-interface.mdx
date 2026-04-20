@@ -3,7 +3,22 @@ title: Command Line Interface
 ---
 
 The command-line interface will help you communicate with our API, quickly scaffold
-simple projects using Hono or bundle your application into a proper deployment.
+simple projects using Hono or bundle your application into a proper deployment. Get
+the command-line interface from [npmjs.com](https://www.npmjs.com/package/zugriff),
+[crates.io](https://crates.io/crates/zugriff) or
+[GitHub](https://github.com/zugriffcloud/os/releases).
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Code } from '@astrojs/starlight/components';
+
+<Tabs>
+  <TabItem label="npm.io">
+    <Code code="npm install --global zugriff" lang="sh" />
+  </TabItem>
+  <TabItem label="crates.io">
+    <Code code="cargo install zugriff" lang="sh" />
+  </TabItem>
+</Tabs>
 
 :::note
 The CLI might ask you to install [esbuild](https://esbuild.github.io) or
@@ -12,7 +27,8 @@ choose how to install dependencies.
 :::
 
 :::tip
-Add `-h` or `--help` to any command for more information or `-y` to accept defaults.
+Add `-h` or `--help` to any command for more information, or `-y` before a
+sub-command to accept defaults.
 :::
 
 ## Subcommands
