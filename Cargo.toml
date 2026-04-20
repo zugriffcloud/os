@@ -4,10 +4,10 @@ members = ["crates/zugriff"]
 resolver = "2"
 
 [workspace.dependencies]
-actix-web = "= 4.12.1"
-tokio = "= 1.51.1"
+actix-web = "= 4.13.0"
+tokio = "= 1.52.1"
 awc = "= 3.8.2"
-clap = "= 4.6.0"
+clap = "= 4.6.1"
 which = "= 8.0.2"
 indicatif = "= 0.18.4"
 dialoguer = "= 0.12.0"
