@@ -5,7 +5,7 @@ edition = "2024"
 license = "EUPL-1.2"
 repository = "https://github.com/zugriffcloud/os"
 authors = ["Luca Goslar <luca@zugriff.eu>"]
-description = "zugriff CLI"
+description = "The command-line interface for https://www.zugriff.eu"
 
 [dependencies]
 actix-web.workspace = true

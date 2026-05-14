@@ -1,12 +1,12 @@
 # zugriff
 
-CLI to communicate with the Deployment and General Purpose APIs.
+The command-line interface for [zugriff](https://www.zugriff.eu).
 
-## Install
-
-After installation, the binary can be accessed through the `zugriff` command.
+## Installation
 
 ```zsh
+git clone https://github.com/zugriffcloud/os.git
+cd os/crates/zugriff
 cargo install --path . --locked
 ```
 

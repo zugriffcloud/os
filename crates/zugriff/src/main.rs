@@ -61,7 +61,7 @@ pub enum Actions {
     #[arg(long)]
     address: Option<String>,
 
-    /// Pack a Next.js or custom application
+    /// Pack a custom application
     #[arg(long)]
     pack: bool,
 
@@ -278,7 +278,7 @@ pub static AUTHORS: &'static str = "Luca Goslar <luca.goslar@zugriff.eu>";
 #[command(bin_name = "zugriff")]
 #[command(author = AUTHORS)]
 #[command(version = env!("CARGO_PKG_VERSION"))]
-#[command(about = "CLI to interact with the zugriff API.", long_about = None)]
+#[command(about = "The command-line interface for https://www.zugriff.eu", long_about = None)]
 pub struct Args {
   #[command(subcommand)]
   pub action: Actions,
